@@ -15,7 +15,8 @@
     "build": "node scripts/clean.mjs && tsc --noEmit && tsdown",
     "prepack": "pnpm build",
     "test": "vitest run",
-    "pack:check": "npm pack --dry-run"
+    "pack:check": "npm pack --dry-run",
+    "release": "node scripts/release.mjs"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0",

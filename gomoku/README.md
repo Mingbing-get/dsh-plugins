@@ -16,6 +16,14 @@ pnpm build
 pnpm pack --pack-destination dist
 ```
 
+发布新版本前，先更新 `package.json` 中的 `version`、提交改动，然后执行：
+
+```sh
+pnpm release
+```
+
+该命令会构建并打包插件、创建 `gomoku-v<version>` 标签、推送标签，以及创建 GitHub Release 并上传 `.tgz` 安装包。
+
 构建会从 `src/index.ts` 生成 Node 侧的 `lib/index.js`，从 `src/client/index.ts` 和 React 组件生成 Harness Web 模块格式的 `lib/client.js`。`prepack` 会在打 tarball 前自动重新构建；`dist/dsh-gomoku-plugin-0.3.0.tgz` 和构建后的项目目录都可直接安装，无需在 profile 中执行构建脚本。
 
 ## 安装
