@@ -1,12 +1,25 @@
 import { createRequire } from 'node:module'
-import { access } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
 import { CodeGraphError, diagnostic } from './errors.ts'
 
 const require = createRequire(import.meta.url)
 export function resolveCli(): string {
-  try { return require.resolve('@colbymchenry/codegraph/npm-shim.js') } catch { throw new CodeGraphError(diagnostic('CLI_NOT_FOUND', 'The bundled CodeGraph CLI is missing. Reinstall this plugin.', false)) }
+  try {
+    // The upstream package deliberately exports only its package manifest and
+    // SDK entry point. Resolving `npm-shim.js` as a package subpath therefore
+    // fails with ERR_PACKAGE_PATH_NOT_EXPORTED even when the CLI is installed.
+    // Locate the exported manifest first, then resolve the shipped shim by its
+    // filesystem path.
+    const manifest = require.resolve('@colbymchenry/codegraph/package.json')
+    const shim = join(dirname(manifest), 'npm-shim.js')
+    if (!existsSync(shim)) throw new Error('npm-shim.js is absent')
+    return shim
+  } catch {
+    throw new CodeGraphError(diagnostic('CLI_NOT_FOUND', 'The bundled CodeGraph CLI is missing. Reinstall this plugin.', false))
+  }
 }
 export interface CommandResult { stdout: string; stderr: string; code: number }
 export function command(cli: string, args: string[], cwd: string, env: NodeJS.ProcessEnv, timeoutMs: number, signal?: AbortSignal): Promise<CommandResult> {

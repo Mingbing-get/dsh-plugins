@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { resolveConfig } from '../src/config.ts'
+import { resolveCli } from '../src/cli.ts'
 import { detectCodeWorkspace } from '../src/detector.ts'
 import { CodeGraphError } from '../src/errors.ts'
 import { canonicalWorkspace } from '../src/workspace.ts'
@@ -12,6 +13,9 @@ async function workspace(): Promise<string> { const root = await mkdtemp(join(tm
 afterEach(async () => { await Promise.all(created.splice(0).map(root => rm(root, { recursive: true, force: true }))) })
 
 describe('workspace detection', () => {
+  it('locates the bundled CLI without relying on an unexported package subpath', () => {
+    expect(resolveCli()).toMatch(/@colbymchenry[\\/]codegraph[\\/]npm-shim\.js$/)
+  })
   it('recognizes supported source while ignoring dependency trees', async () => {
     const root = await workspace(); await mkdir(join(root, 'node_modules', 'pkg'), { recursive: true }); await writeFile(join(root, 'node_modules', 'pkg', 'index.ts'), 'export {}')
     expect((await detectCodeWorkspace(root, resolveConfig())).code).toBe(false)
