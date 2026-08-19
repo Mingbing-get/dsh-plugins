@@ -30,7 +30,7 @@ pnpm release
 
 ```sh
 cd /Users/mingbing/apps/test/deepseek-harness
-pnpm dsh plugin --profile web add /Users/mingbing/apps/ai-project/dsh-plugins/gomoku
+pnpm dsh plugin --profile web add https://github.com/Mingbing-get/dsh-plugins/releases/download/v0.3.0/dsh-gomoku-plugin-0.3.0.tgz
 pnpm dsh web
 ```
 

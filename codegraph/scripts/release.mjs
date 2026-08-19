@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const packageJson = JSON.parse(readFileSync(resolve(pluginRoot, 'package.json'), 'utf8'))
 const { name, version } = packageJson
-const tag = `gomoku-v${version}`
+const tag = `codegraph-v${version}`
 const archive = resolve(pluginRoot, 'dist', `${name}-${version}.tgz`)
 const repositoryRoot = resolve(pluginRoot, '..')
 const releaseUrl = `https://github.com/Mingbing-get/dsh-plugins/releases/download/${tag}/${name}-${version}.tgz`
@@ -53,14 +53,14 @@ function updateReleaseDocs() {
   let rootContents = readFileSync(rootReadme, 'utf8')
   rootContents = replaceOrThrow(
     rootContents,
-    /<!-- latest-release:gomoku -->\n\| `[^`]+` \| \[查看 Release\]\([^\n]+\) \|/,
-    `<!-- latest-release:gomoku -->\n| \`${version}\` | [查看 Release](https://github.com/Mingbing-get/dsh-plugins/releases/tag/${tag}) |`,
+    /<!-- latest-release:codegraph -->\n\| `[^`]+` \| \[查看 Release\]\([^\n]+\) \|/,
+    `<!-- latest-release:codegraph -->\n| \`${version}\` | [查看 Release](https://github.com/Mingbing-get/dsh-plugins/releases/tag/${tag}) |`,
     rootReadme,
   )
   rootContents = replaceOrThrow(
     rootContents,
-    /<!-- latest-install:gomoku -->\n(?:dsh|pnpm dsh) plugin add \S+/,
-    `<!-- latest-install:gomoku -->\ndsh plugin add ${releaseUrl}`,
+    /<!-- latest-install:codegraph -->\n(?:dsh|pnpm dsh) plugin add \S+/,
+    `<!-- latest-install:codegraph -->\ndsh plugin add ${releaseUrl}`,
     rootReadme,
   )
   writeFileSync(rootReadme, rootContents)
@@ -85,7 +85,7 @@ if (!succeeds('gh', ['auth', 'status'])) {
 }
 
 console.log(`打包 ${name}@${version}…`)
-run('pnpm', ['pack', '--pack-destination', 'dist'], { cwd: pluginRoot, stdio: 'inherit' })
+run('pnpm', ['run', 'pack'], { stdio: 'inherit' })
 
 if (!existsSync(archive)) {
   throw new Error(`未找到打包产物：${archive}`)
@@ -104,7 +104,7 @@ run(
     tag,
     archive,
     '--title',
-    `五子棋 v${version}`,
+    `CodeGraph v${version}`,
     '--generate-notes',
   ],
   { stdio: 'inherit' },
