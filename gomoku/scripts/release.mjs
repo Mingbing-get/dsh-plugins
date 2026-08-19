@@ -53,14 +53,14 @@ function updateReleaseDocs() {
   let rootContents = readFileSync(rootReadme, 'utf8')
   rootContents = replaceOrThrow(
     rootContents,
-    /<!-- latest-release:gomoku -->\n\| `[^`]+` \| \[查看 Release\]\([^\n]+\) \|/,
-    `<!-- latest-release:gomoku -->\n| \`${version}\` | [查看 Release](https://github.com/Mingbing-get/dsh-plugins/releases/tag/${tag}) |`,
+    /(<!-- latest-release:gomoku -->[\s\S]*?\| --- \|\n)\| `[^`]+` \| \[查看 Release\]\([^\n]+\) \|/,
+    `$1| \`${version}\` | [查看 Release](https://github.com/Mingbing-get/dsh-plugins/releases/tag/${tag}) |`,
     rootReadme,
   )
   rootContents = replaceOrThrow(
     rootContents,
-    /<!-- latest-install:gomoku -->\n(?:dsh|pnpm dsh) plugin add \S+/,
-    `<!-- latest-install:gomoku -->\ndsh plugin add ${releaseUrl}`,
+    /(<!-- latest-install:gomoku -->\n```sh\n)(?:dsh|pnpm dsh) plugin add \S+/,
+    `$1dsh plugin add ${releaseUrl}`,
     rootReadme,
   )
   writeFileSync(rootReadme, rootContents)

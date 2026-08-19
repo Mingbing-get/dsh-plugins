@@ -6,35 +6,35 @@
 
 ## 插件目录
 
+<!-- latest-release:gomoku -->
 ### 五子棋（`gomoku`）
 
 提供一个可交互的五子棋工具和 Web 悬浮棋盘。
 
 | 版本 | 发布说明与下载 |
 | --- | --- |
-<!-- latest-release:gomoku -->
 | `0.3.0` | [查看 Release](https://github.com/Mingbing-get/dsh-plugins/releases/tag/v0.3.0) |
 
 直接安装最新包：
 
-```sh
 <!-- latest-install:gomoku -->
+```sh
 dsh plugin add https://github.com/Mingbing-get/dsh-plugins/releases/download/v0.3.0/dsh-gomoku-plugin-0.3.0.tgz
 ```
 
+<!-- latest-release:codegraph -->
 ### CodeGraph（`codegraph`）
 
 按当前会话工作区建立并查询代码图谱。
 
 | 版本 | 发布说明与下载 |
 | --- | --- |
-<!-- latest-release:codegraph -->
 | `0.1.0` | [查看 Release](https://github.com/Mingbing-get/dsh-plugins/releases/tag/codegraph-v0.1.0) |
 
 直接安装最新包：
 
-```sh
 <!-- latest-install:codegraph -->
+```sh
 dsh plugin add https://github.com/Mingbing-get/dsh-plugins/releases/download/codegraph-v0.1.0/dsh-codegraph-plugin-0.1.0.tgz
 ```
 

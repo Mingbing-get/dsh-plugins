@@ -53,14 +53,14 @@ function updateReleaseDocs() {
   let rootContents = readFileSync(rootReadme, 'utf8')
   rootContents = replaceOrThrow(
     rootContents,
-    /<!-- latest-release:codegraph -->\n\| `[^`]+` \| \[查看 Release\]\([^\n]+\) \|/,
-    `<!-- latest-release:codegraph -->\n| \`${version}\` | [查看 Release](https://github.com/Mingbing-get/dsh-plugins/releases/tag/${tag}) |`,
+    /(<!-- latest-release:codegraph -->[\s\S]*?\| --- \|\n)\| `[^`]+` \| \[查看 Release\]\([^\n]+\) \|/,
+    `$1| \`${version}\` | [查看 Release](https://github.com/Mingbing-get/dsh-plugins/releases/tag/${tag}) |`,
     rootReadme,
   )
   rootContents = replaceOrThrow(
     rootContents,
-    /<!-- latest-install:codegraph -->\n(?:dsh|pnpm dsh) plugin add \S+/,
-    `<!-- latest-install:codegraph -->\ndsh plugin add ${releaseUrl}`,
+    /(<!-- latest-install:codegraph -->\n```sh\n)(?:dsh|pnpm dsh) plugin add \S+/,
+    `$1dsh plugin add ${releaseUrl}`,
     rootReadme,
   )
   writeFileSync(rootReadme, rootContents)
