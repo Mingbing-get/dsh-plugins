@@ -40,4 +40,12 @@ describe('raster document', () => {
     expect(Array.from(doc.pixels.slice((1 * 5 + 2) * 4, (1 * 5 + 3) * 4))).toEqual([0, 255, 0, 255])
     expect(Array.from(doc.pixels.slice((1 * 5) * 4, (1 * 5 + 1) * 4))).toEqual([0, 0, 0, 255])
   })
+
+  it('reports malformed operation payloads as drawing errors without committing', () => {
+    const doc = createDocument(4, 4, 'transparent')
+    expect(() => edit(doc, { x: 0, y: 0, w: 4, h: 4 }, undefined as never)).toThrow('ops must be an array')
+    expect(() => edit(doc, { x: 0, y: 0, w: 4, h: 4 }, [{ op: 'rotate' } as never])).toThrow('unsupported operation: rotate')
+    expect(() => edit(doc, { x: 0, y: 0, w: 4, h: 4 }, [{ op: 'flip', axis: 'diagonal' } as never])).toThrow('flip axis must be horizontal or vertical')
+    expect(doc.version).toBe(1)
+  })
 })

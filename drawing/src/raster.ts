@@ -55,7 +55,7 @@ export function setSelection(doc: ImageDocument, selection: Rect | null): void {
 }
 
 export function edit(doc: ImageDocument, selection: Rect, ops: EditOperation[]): void {
-  if (ops.length === 0 || ops.length > MAX_OPS) throw new DrawingError(`ops must contain 1 to ${MAX_OPS} operations`)
+  if (!Array.isArray(ops) || ops.length === 0 || ops.length > MAX_OPS) throw new DrawingError(`ops must be an array containing 1 to ${MAX_OPS} operations`)
   const before = snapshot(doc)
   const target = normalizeRect(selection, doc)
   try {
@@ -93,6 +93,7 @@ export function alphaStats(doc: ImageDocument, area: Rect): { opaque: number; tr
 function snapshot(doc: ImageDocument): HistoryEntry { return { pixels: doc.pixels.slice(), width: doc.width, height: doc.height, selection: doc.selection === null ? null : { ...doc.selection } } }
 function restore(doc: ImageDocument, state: HistoryEntry): void { doc.pixels = state.pixels; doc.width = state.width; doc.height = state.height; doc.selection = state.selection }
 function parseColor(input: string): [number, number, number, number] {
+  if (typeof input !== 'string') throw new DrawingError('colors must be strings in #RRGGBB or #RRGGBBAA format')
   const match = /^#([0-9a-f]{6}|[0-9a-f]{8})$/i.exec(input)
   if (match === null) throw new DrawingError('colors must be #RRGGBB or #RRGGBBAA')
   const hex = match[1]!
@@ -102,9 +103,10 @@ function opacity(value: number | undefined): number { if (value === undefined) r
 function fillPixels(pixels: Uint8ClampedArray, color: [number, number, number, number], alpha: number): void { for (let i = 0; i < pixels.length; i += 4) blend(pixels, i, color, alpha) }
 function blend(pixels: Uint8ClampedArray, i: number, color: [number, number, number, number], alpha: number): void { const a = color[3] * alpha / 255; const old = pixels[i + 3]! / 255; const out = a + old * (1 - a); if (out === 0) { pixels.fill(0, i, i + 4); return } for (let c = 0; c < 3; c++) pixels[i + c] = (color[c]! * a + pixels[i + c]! * old * (1 - a)) / out; pixels[i + 3] = out * 255 }
 function applyOperation(doc: ImageDocument, target: Rect, op: EditOperation): void {
+  if (typeof op !== 'object' || op === null || !('op' in op) || typeof op.op !== 'string') throw new DrawingError('each operation must be an object with a supported string op')
   if (op.op === 'crop') { crop(doc, normalizeRect(op, doc)); return }
   if (op.op === 'resize') { resize(doc, op.width, op.height); return }
-  if (op.op === 'flip') { flip(doc, op.axis); return }
+  if (op.op === 'flip') { if (op.axis !== 'horizontal' && op.axis !== 'vertical') throw new DrawingError('flip axis must be horizontal or vertical'); flip(doc, op.axis); return }
   if (op.op === 'fill') { forRect(target, (x, y) => paint(doc, x, y, parseColor(op.color), opacity(op.opacity))); return }
   if (op.op === 'clear') { forRect(target, (x, y) => clear(doc, x, y)); return }
   if (op.op === 'rect') { const rect = intersect(target, normalizeRect(op, doc)); forRect(rect, (x, y) => paint(doc, x, y, parseColor(op.color), opacity(op.opacity))); return }
@@ -112,11 +114,14 @@ function applyOperation(doc: ImageDocument, target: Rect, op: EditOperation): vo
   if (op.op === 'polygon') { if (op.points.length < 3 || op.points.length > 128) throw new DrawingError('polygon points must contain 3 to 128 coordinates'); const color = parseColor(op.color); const xs = op.points.map(point => point.x); const ys = op.points.map(point => point.y); const box = intersect(target, normalizeRect({ x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs) + 1, h: Math.max(...ys) - Math.min(...ys) + 1 }, doc)); forRect(box, (x, y) => { if (insidePolygon(x + .5, y + .5, op.points)) paint(doc, x, y, color, opacity(op.opacity)) }); return }
   if (op.op === 'flood_fill') { floodFill(doc, target, op); return }
   if (op.op === 'replace_color') { const from = parseColor(op.from); const to = parseColor(op.to); const tolerance = op.tolerance ?? 0; if (!Number.isFinite(tolerance) || tolerance < 0 || tolerance > 255) throw new DrawingError('tolerance must be between 0 and 255'); forRect(target, (x, y) => { const i = (y * doc.width + x) * 4; if ([0, 1, 2, 3].every(c => Math.abs(doc.pixels[i + c]! - from[c]!) <= tolerance)) blend(doc.pixels, i, to, 1) }); return }
+  if (op.op !== 'line' && op.op !== 'brush') throw new DrawingError(`unsupported operation: ${(op as { op: unknown }).op}`)
   const color = parseColor(op.color); const radius = op.radius ?? 1; if (!Number.isFinite(radius) || radius <= 0 || radius > 512) throw new DrawingError('radius must be between 0 and 512')
-  if (op.op === 'brush') { if (op.points.length === 0 || op.points.length > 1024) throw new DrawingError('brush points must contain 1 to 1024 coordinates'); for (const point of op.points) dot(doc, target, point.x, point.y, radius, color, opacity(op.opacity)); return }
+  if (op.op === 'brush') { if (!Array.isArray(op.points) || op.points.length === 0 || op.points.length > 1024) throw new DrawingError('brush points must contain an array of 1 to 1024 coordinates'); for (const point of op.points) { if (!isPoint(point)) throw new DrawingError('brush points must each contain finite x and y numbers'); dot(doc, target, point.x, point.y, radius, color, opacity(op.opacity)) } return }
+  if (![op.x1, op.y1, op.x2, op.y2].every(Number.isFinite)) throw new DrawingError('line requires finite x1, y1, x2, and y2 numbers')
   const dx = op.x2 - op.x1; const dy = op.y2 - op.y1; const steps = Math.max(Math.abs(dx), Math.abs(dy), 1)
   for (let i = 0; i <= steps; i++) dot(doc, target, op.x1 + dx * i / steps, op.y1 + dy * i / steps, radius, color, opacity(op.opacity))
 }
+function isPoint(value: unknown): value is { x: number; y: number } { return typeof value === 'object' && value !== null && 'x' in value && 'y' in value && Number.isFinite(value.x) && Number.isFinite(value.y) }
 function insidePolygon(x: number, y: number, points: Array<{ x: number; y: number }>): boolean { let inside = false; for (let i = 0, j = points.length - 1; i < points.length; j = i++) { const a = points[i]!; const b = points[j]!; if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) inside = !inside } return inside }
 function floodFill(doc: ImageDocument, target: Rect, op: Extract<EditOperation, { op: 'flood_fill' }>): void { const x = Math.floor(op.x); const y = Math.floor(op.y); if (x < target.x || y < target.y || x >= target.x + target.w || y >= target.y + target.h) throw new DrawingError('flood fill seed must be inside the selection'); const tolerance = op.tolerance ?? 0; if (!Number.isFinite(tolerance) || tolerance < 0 || tolerance > 255) throw new DrawingError('tolerance must be between 0 and 255'); const index = (y * doc.width + x) * 4; const source: [number, number, number, number] = [doc.pixels[index]!, doc.pixels[index + 1]!, doc.pixels[index + 2]!, doc.pixels[index + 3]!]; const color = parseColor(op.color); const visited = new Uint8Array(target.w * target.h); const queue: Array<[number, number]> = [[x, y]]; for (let cursor = 0; cursor < queue.length; cursor++) { const [px, py] = queue[cursor]!; const key = (py - target.y) * target.w + px - target.x; if (visited[key] !== 0) continue; visited[key] = 1; const current = (py * doc.width + px) * 4; if ([0, 1, 2, 3].some(c => Math.abs(doc.pixels[current + c]! - source[c]!) > tolerance)) continue; paint(doc, px, py, color, opacity(op.opacity)); if (px > target.x) queue.push([px - 1, py]); if (px + 1 < target.x + target.w) queue.push([px + 1, py]); if (py > target.y) queue.push([px, py - 1]); if (py + 1 < target.y + target.h) queue.push([px, py + 1]) } }
 function crop(doc: ImageDocument, rect: Rect): void { const next = new Uint8ClampedArray(rect.w * rect.h * 4); for (let y = 0; y < rect.h; y++) next.set(doc.pixels.subarray(((rect.y + y) * doc.width + rect.x) * 4, ((rect.y + y) * doc.width + rect.x + rect.w) * 4), y * rect.w * 4); doc.width = rect.w; doc.height = rect.h; doc.pixels = next; doc.selection = null }

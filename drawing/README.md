@@ -6,6 +6,115 @@ DeepSeek Harness 的 AI 单图编辑插件。当前已实现会话级 raster 文
 
 完整需求、边界和验收标准见 [PRD.md](./PRD.md)。下一阶段会接入 Web 浮窗、框选上下文、PNG 渲染/下载以及 AI inpaint/outpaint bridge。
 
+## 大模型调用操作说明
+
+这是一个**确定性像素绘图**工具，不是文生图模型。模型应把用户意图拆成几何图形、色块、线条和像素操作；不要传 prompt、图片 URL、Base64、文件路径、SVG、Canvas 代码或未列出的滤镜参数。
+
+### 必须遵守的调用流程
+
+1. 当前会话没有画布时，调用 `create_image`。
+2. 读取每次成功返回的 `version`。下一次 `edit_image`、`undo_image` 或 `redo_image` 必须把它原样传到 `expectedVersion`。
+3. 每次成功操作都会令 `version` 加 1；**绝不能复用旧版本号**。若收到版本不一致错误，调用 `query_image({ scope: 'summary' })`，再用返回的新版本重试一次。
+4. 调用 `edit_image` 时必须给出 `selection` 和包含 1–32 项的 `ops`。只要不是用户明确要求全图操作，就优先使用精确的 `{ type: 'rect', x, y, w, h }`。
+5. 一组彼此依赖的动作可放进同一次 `ops`，它们会原子提交：其中任一项非法，整组不会修改图像。需要中间结果或不同区域时，拆成多次调用并使用新版本号。
+
+`query_image` 只返回尺寸、版本、选区和透明度统计，不能识别画面内容或像素颜色。因此模型应基于自己刚才绘制的坐标继续编辑，并在不能确定位置时询问用户。
+
+### `create_image`
+
+```ts
+create_image({
+  width: 1024,
+  height: 768,
+  background: '#fff7ed',
+})
+```
+
+| 参数 | 用法 |
+| --- | --- |
+| `width`、`height` | 必填整数，单位为像素；范围均为 `1–4096`，总像素数不超过 `16,777,216`。 |
+| `background` | 可省略，默认 `transparent`。只能为 `transparent`、`#RRGGBB` 或 `#RRGGBBAA`，例如 `#ffffff`、`#10203080`。不能使用颜色名称、`rgb()` 或三位短色值。 |
+| `replace` | 仅用户明确说“重新开始”“覆盖当前图”时使用 `true`；否则已有画布会被拒绝，防止误覆盖。 |
+
+成功结果中的 `version` 初始为 `1`，它就是第一笔编辑的 `expectedVersion`。
+
+### `query_image`
+
+```ts
+query_image({ scope: 'summary' })
+query_image({ scope: 'region', bounds: { x: 0, y: 0, w: 200, h: 120 } })
+```
+
+`scope` 必填：`summary` 查询全图状态；`selection` 查询当前选区（没有选区时返回全图）；`region` 查询给定 `bounds` 的透明度统计。`bounds` 仅在 `region` 时必填，格式为 `{ x, y, w, h }`，且必须是非空矩形。
+
+### `edit_image` 的公共参数
+
+```ts
+edit_image({
+  expectedVersion: 1,
+  selection: { type: 'rect', x: 80, y: 60, w: 320, h: 220 },
+  ops: [{ op: 'ellipse', x: 120, y: 90, w: 160, h: 160, color: '#fbbf24' }],
+})
+```
+
+| 参数 | 用法 |
+| --- | --- |
+| `expectedVersion` | 必填整数，必须等于上一次成功结果的 `version`。 |
+| `selection` | 必填，限制普通绘制可写入的区域。`{ type: 'all' }` 为全图；`{ type: 'rect', x, y, w, h }` 为矩形；`{ type: 'current' }` 只在系统已提供活动选区时可用。当前没有选区时不要猜测使用 `current`。 |
+| `ops` | 必填数组，长度 `1–32`。数组内按顺序执行。 |
+
+坐标原点在左上角，`x` 向右、`y` 向下，单位为像素。`w`、`h` 必须大于 0。几何图形会裁剪到画布和 `selection` 内。所有 `color`、`from`、`to` 必须为 `#RRGGBB` 或 `#RRGGBBAA`；`opacity` 是 `0–1` 的数字，省略即为 `1`。
+
+### `ops` 参数速查
+
+| `op` | 必填字段 | 可选字段与说明 |
+| --- | --- | --- |
+| `fill` | `color` | `opacity`；填满整个 `selection`。 |
+| `clear` | 无 | 清空 `selection` 为透明。 |
+| `rect` | `x`, `y`, `w`, `h`, `color` | `opacity`；实心矩形。 |
+| `ellipse` | `x`, `y`, `w`, `h`, `color` | `opacity`；椭圆外接矩形。 |
+| `polygon` | `points`, `color` | `opacity`；`points` 为至少 3、最多 128 个 `{x,y}` 顶点。 |
+| `line` | `x1`, `y1`, `x2`, `y2`, `color` | `radius`（笔触半径，`>0` 且不超过 512，默认 1）、`opacity`。 |
+| `brush` | `points`, `color` | `radius`、`opacity`；`points` 为 1–1024 个 `{x,y}` 点，每个点绘制圆形笔触。 |
+| `flood_fill` | `x`, `y`, `color` | `tolerance`（`0–255`，默认 0）；种子点必须在 `selection` 内，填充不会越过该选区。 |
+| `replace_color` | `from`, `to` | `tolerance`（`0–255`，默认 0）；仅替换 `selection` 内 RGBA 每通道误差均不超过容差的像素。 |
+| `crop` | `x`, `y`, `w`, `h` | 裁切并改变画布尺寸；完成后选区会清除。建议单独一次调用。 |
+| `resize` | `width`, `height` | 新尺寸限制同创建画布；使用最近邻缩放，完成后选区会清除。建议单独一次调用。 |
+| `flip` | `axis` | `axis` 只能是 `horizontal`（左右翻转）或 `vertical`（上下翻转）。 |
+
+示例：在浅色背景上画一个太阳和地平线。一次成功后，使用结果的 `version` 继续下一笔。
+
+```ts
+edit_image({
+  expectedVersion: 1,
+  selection: { type: 'all' },
+  ops: [
+    { op: 'fill', color: '#e0f2fe' },
+    { op: 'ellipse', x: 380, y: 110, w: 160, h: 160, color: '#f59e0b' },
+    { op: 'line', x1: 0, y1: 500, x2: 1023, y2: 500, color: '#0f766e', radius: 4 },
+  ],
+})
+```
+
+### 撤销与重做
+
+```ts
+undo_image({ expectedVersion: 2 })
+redo_image({ expectedVersion: 3 })
+```
+
+一次 `edit_image`（即使有多个 `ops`）只对应一个历史记录。撤销或重做同样会产生新版本号，后续调用必须使用其返回的版本。
+
+### 常见失败与恢复
+
+| 错误情形 | 正确做法 |
+| --- | --- |
+| `expectedVersion does not match` | 查询 `summary` 获取新版本；只重试一次，且不要重放一个可能已成功的请求。 |
+| 已有图像时再次创建 | 没有明确覆盖授权时，改为 `edit_image`；有授权才传 `replace: true`。 |
+| `selection` 非法或 `current` 无选区 | 用 `{ type: 'rect', ... }` 指定范围，或在用户明确要求时使用 `{ type: 'all' }`。 |
+| 颜色格式错误 | 改成完整的 `#RRGGBB` / `#RRGGBBAA`，例如 `#22c55e`，不要用 `red`、`#fff`。 |
+| 不支持的操作 | 仅使用上表列出的 12 种 `op`；不要使用 PRD 中尚未实现的 `text`、`inpaint`、`rotate`、`generate` 等操作。 |
+
 ## 开发
 
 ```sh
