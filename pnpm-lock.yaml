@@ -72,6 +72,9 @@ importers:
       '@deepseek-ai/dsh-attachment':
         specifier: link:../../../test/deepseek-harness/packages/attachment/attachment
         version: link:../../../test/deepseek-harness/packages/attachment/attachment
+      '@deepseek-ai/dsh-client-connection':
+        specifier: link:../../../test/deepseek-harness/packages/client/connection
+        version: link:../../../test/deepseek-harness/packages/client/connection
       '@deepseek-ai/dsh-client-runtime':
         specifier: link:../../../test/deepseek-harness/packages/client/runtime
         version: link:../../../test/deepseek-harness/packages/client/runtime
@@ -90,9 +93,6 @@ importers:
       '@deepseek-ai/dsh-tools':
         specifier: link:../../../test/deepseek-harness/packages/core/tools
         version: link:../../../test/deepseek-harness/packages/core/tools
-      '@deepseek-ai/dsh-user-questions':
-        specifier: link:../../../test/deepseek-harness/packages/interaction/user-questions
-        version: link:../../../test/deepseek-harness/packages/interaction/user-questions
       '@types/react':
         specifier: ~18.3.1
         version: 18.3.31

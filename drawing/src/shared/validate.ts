@@ -63,6 +63,25 @@ export function validateImageInfo(value: unknown): ValidationResult {
   return success()
 }
 
+/** Validates the complete metadata that the browser reports for one image query. */
+export function validateImageResult(value: unknown): ValidationResult {
+  const imageResult = validateImageInfo(value)
+  if (imageResult.isError) return imageResult
+  if (!isRecord(value)) return failure('image result must be an object')
+  const boundsResult = validateRect(value.bounds)
+  if (boundsResult.isError) return failure('image result bounds must be a rectangle')
+  if (typeof value.clipped !== 'boolean' || !isRecord(value.alpha)) {
+    return failure('image result must include clipped and alpha')
+  }
+  if (
+    ![value.alpha.opaque, value.alpha.transparent, value.alpha.partial].every(isNonNegativeInteger)
+  ) {
+    return failure('image result alpha counts must be non-negative integers')
+  }
+
+  return success()
+}
+
 export function validateEditOperation(value: unknown): ValidationResult {
   if (!isRecord(value) || typeof value.op !== 'string') {
     return failure('operation must be an object with a string op')

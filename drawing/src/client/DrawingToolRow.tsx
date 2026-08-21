@@ -1,11 +1,18 @@
 import { useEffect, useRef } from 'react'
 import type { PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
+import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
 import { drawingCalls, DrawingWindow } from './DrawingWindow.tsx'
 import { queryDrawing } from './replay.ts'
 import type { DrawingStore, DrawingToolName } from './store.ts'
 
 type DrawingToolRowProps = ToolCallViewProps & PropsStore<DrawingStore>
+
+let connection: ConnectionHandle | undefined
+
+export function setDrawingConnection(next: ConnectionHandle): void {
+  connection = next
+}
 
 function title(toolName: DrawingToolName): string {
   return {
@@ -22,20 +29,14 @@ export function DrawingToolRow({
   toolName,
   block,
   useSession,
+  sessionId,
   useStore,
   actions,
 }: DrawingToolRowProps) {
-  const respondedQueries = useRef(new Set<string>())
+  const publishedQueries = useRef(new Set<string>())
   const hasImage = useStore((state) => state.hasImage)
   const open = useStore((state) => state.open)
   const owner = useStore((state) => state.ownerCallId === callId)
-  const queryWait = useSession(
-    (snapshot) =>
-      snapshot.pending.find(
-        (item) =>
-          item.kind === 'question' && item.payload.questions[0]?.header === 'drawing:query-image',
-      ) ?? null,
-  )
   const calls = useSession(drawingCalls)
 
   useEffect(() => {
@@ -43,26 +44,20 @@ export function DrawingToolRow({
   }, [actions, callId, toolName])
 
   useEffect(() => {
-    if (toolName !== 'query_image' || 'kind' in block || queryWait === null) return
-    if (respondedQueries.current.has(queryWait.key)) return
-    const request = queryWait.payload.questions[0]
-    if (request?.detail === undefined) return
+    if (toolName !== 'query_image' || 'kind' in block || publishedQueries.current.has(callId))
+      return
+    if (connection === undefined) return
     let query: Parameters<typeof queryDrawing>[2]
     try {
-      query = JSON.parse(request.detail) as Parameters<typeof queryDrawing>[2]
+      query = JSON.parse(block.argsRaw) as Parameters<typeof queryDrawing>[2]
     } catch {
       return
     }
     const canvas = document.createElement('canvas')
     const result = queryDrawing(canvas, calls, query)
-    respondedQueries.current.add(queryWait.key)
-    void queryWait.respond({
-      ok: true,
-      value: {
-        answers: [{ id: 'drawing-query-image', selected: [], custom: JSON.stringify(result) }],
-      },
-    })
-  }, [block, calls, queryWait, toolName])
+    publishedQueries.current.add(callId)
+    void connection.rpc.call('/drawing', 'image-metadata', { sessionId, callId, result })
+  }, [block, callId, calls, sessionId, toolName])
 
   return (
     <>

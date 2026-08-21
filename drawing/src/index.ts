@@ -1,14 +1,15 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-system-prompt'
-import type {} from '@deepseek-ai/dsh-user-questions'
+import type {} from '@deepseek-ai/dsh-client-connection'
 import { createImageTool } from './tools/create-image.ts'
 import { editImageTool } from './tools/edit-image.ts'
 import { createQueryImageTool } from './tools/query-image.ts'
 import { redoImageTool } from './tools/redo-image.ts'
 import { undoImageTool } from './tools/undo-image.ts'
+import { installImageMetadataBridge } from './tools/image-metadata-bridge.ts'
 
 export const name = 'drawing'
-export const inject = ['tools', 'systemPrompt', 'userQuestions']
+export const inject = ['tools', 'systemPrompt', 'connection']
 
 const EDIT_IMAGE_OPS_CONTEXT = `# edit_image operation manual
 
@@ -84,13 +85,14 @@ Fill the user-selected region with a two-stop gradient:
 `
 
 export function apply(ctx: Context): void {
+  const imageMetadataBridge = installImageMetadataBridge(ctx)
   ctx.systemPrompt.context({
     name: 'drawing:edit-image-ops',
     order: 100,
     text: EDIT_IMAGE_OPS_CONTEXT,
   })
   ctx.tools.register(createImageTool)
-  ctx.tools.register(createQueryImageTool(ctx))
+  ctx.tools.register(createQueryImageTool(ctx, imageMetadataBridge))
   ctx.tools.register(editImageTool)
   ctx.tools.register(undoImageTool)
   ctx.tools.register(redoImageTool)

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ToolDefinition, ToolRunContext } from '@deepseek-ai/dsh-tools'
 import { ToolArgsError } from '@deepseek-ai/dsh-tools'
@@ -9,6 +9,7 @@ describe('drawing server tools', () => {
     const registered = new Map<string, ToolDefinition>()
     const contexts: { name: string; order: number; text: string }[] = []
     const ctx = {
+      connection: { rpc: { handle: () => async () => {} } },
       tools: {
         register(tool: ToolDefinition) {
           registered.set(tool.name, tool)
@@ -54,30 +55,19 @@ describe('drawing server tools', () => {
     ).resolves.toEqual({ ok: true })
   })
 
-  it('requests live drawing metadata from the client before returning query_image results', async () => {
-    const ask = vi.fn().mockResolvedValue({
-      answers: [
-        {
-          id: 'drawing-query-image',
-          selected: [],
-          custom: JSON.stringify({
-            ok: true,
-            value: {
-              imageId: 'image:main',
-              version: 3,
-              width: 640,
-              height: 480,
-              selection: null,
-              bounds: { x: 0, y: 0, w: 640, h: 480 },
-              alpha: { opaque: 307200, transparent: 0, partial: 0 },
-              clipped: false,
-            },
-          }),
-        },
-      ],
-    })
+  it('returns metadata posted automatically by the drawing client', async () => {
     const registered = new Map<string, ToolDefinition>()
+    let handler:
+      ((endpoint: string, payload: unknown, signal: AbortSignal) => Promise<unknown>) | undefined
     const ctx = {
+      connection: {
+        rpc: {
+          handle(_channel: string, next: typeof handler) {
+            handler = next
+            return async () => {}
+          },
+        },
+      },
       tools: {
         register(tool: ToolDefinition) {
           registered.set(tool.name, tool)
@@ -85,14 +75,16 @@ describe('drawing server tools', () => {
         },
       },
       systemPrompt: { context: () => () => {} },
-      userQuestions: { ask },
     } as unknown as Context
     apply(ctx)
 
-    const exec = { signal: new AbortController().signal } as ToolRunContext
-    await expect(
-      registered.get('query_image')!.execute({ scope: 'summary' }, exec),
-    ).resolves.toEqual({
+    const controller = new AbortController()
+    const exec = {
+      callId: 'drawing-query-image',
+      agent: { id: 'drawing-session' },
+      signal: controller.signal,
+    } as ToolRunContext
+    const result = {
       imageId: 'image:main',
       version: 3,
       width: 640,
@@ -101,24 +93,20 @@ describe('drawing server tools', () => {
       bounds: { x: 0, y: 0, w: 640, h: 480 },
       alpha: { opaque: 307200, transparent: 0, partial: 0 },
       clipped: false,
-    })
-    expect(ask).toHaveBeenCalledWith(
-      expect.objectContaining({
-        questions: [
-          expect.objectContaining({
-            id: 'drawing-query-image',
-            header: 'drawing:query-image',
-            detail: JSON.stringify({ scope: 'summary' }),
-          }),
-        ],
-        signal: exec.signal,
-      }),
+    }
+    const pending = registered.get('query_image')!.execute({ scope: 'summary' }, exec)
+    await handler!(
+      'image-metadata',
+      { sessionId: 'drawing-session', callId: 'drawing-query-image', result },
+      controller.signal,
     )
+    await expect(pending).resolves.toEqual(result)
   })
 
   it('returns validation failures as tool argument errors', async () => {
     const registered = new Map<string, ToolDefinition>()
     const ctx = {
+      connection: { rpc: { handle: () => async () => {} } },
       tools: {
         register(tool: ToolDefinition) {
           registered.set(tool.name, tool)
