@@ -40,8 +40,12 @@ export function DrawingToolRow({
   const calls = useSession(drawingCalls)
 
   useEffect(() => {
-    actions.syncCall({ id: callId, name: toolName as DrawingToolName })
-  }, [actions, callId, toolName])
+    actions.syncCall({
+      id: callId,
+      name: toolName as DrawingToolName,
+      autoOpen: !('kind' in block),
+    })
+  }, [actions, block, callId, toolName])
 
   useEffect(() => {
     if (toolName !== 'query_image' || 'kind' in block || publishedQueries.current.has(callId))

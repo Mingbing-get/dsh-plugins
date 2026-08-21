@@ -18,7 +18,10 @@ export interface DrawingWindowState {
 }
 
 type DrawingWindowActions = {
-  syncCall: (draft: DrawingWindowState, call: Pick<DrawingCall, 'id' | 'name'>) => void
+  syncCall: (
+    draft: DrawingWindowState,
+    call: Pick<DrawingCall, 'id' | 'name'> & { autoOpen: boolean },
+  ) => void
   reveal: (draft: DrawingWindowState) => void
   close: (draft: DrawingWindowState) => void
 }
@@ -40,7 +43,7 @@ export function createDrawingStore(): DrawingStore {
         if (call.name === 'create_image') draft.hasImage = true
         if (call.name !== 'query_image' && draft.hasImage) {
           draft.ownerCallId = call.id
-          draft.open = true
+          if (call.autoOpen) draft.open = true
         }
       },
       reveal(draft) {
