@@ -41,6 +41,21 @@ describe('raster document', () => {
     expect(Array.from(doc.pixels.slice((1 * 5) * 4, (1 * 5 + 1) * 4))).toEqual([0, 0, 0, 255])
   })
 
+  it('renders continuous gradients instead of stacked rectangles', () => {
+    const doc = createDocument(4, 1, 'transparent')
+    edit(doc, { x: 0, y: 0, w: 4, h: 1 }, [{ op: 'linear_gradient', x1: 0, y1: 0, x2: 4, y2: 0, from: '#000000', to: '#ffffff' }])
+    const red = [0, 1, 2, 3].map(x => doc.pixels[x * 4]!)
+    expect(red[0]).toBeLessThan(red[1]!)
+    expect(red[1]).toBeLessThan(red[2]!)
+    expect(red[2]).toBeLessThan(red[3]!)
+  })
+
+  it('connects successive brush points into one stroke', () => {
+    const doc = createDocument(8, 1, 'transparent')
+    edit(doc, { x: 0, y: 0, w: 8, h: 1 }, [{ op: 'brush', points: [{ x: 0, y: 0 }, { x: 7, y: 0 }], radius: 1, color: '#ff0000' }])
+    expect(Array.from({ length: 8 }, (_, x) => doc.pixels[x * 4 + 3]!)).toEqual(Array(8).fill(255))
+  })
+
   it('reports malformed operation payloads as drawing errors without committing', () => {
     const doc = createDocument(4, 4, 'transparent')
     expect(() => edit(doc, { x: 0, y: 0, w: 4, h: 4 }, undefined as never)).toThrow('ops must be an array')

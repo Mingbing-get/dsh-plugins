@@ -15,7 +15,7 @@ DeepSeek Harness 的 AI 单图编辑插件。当前已实现会话级 raster 文
 1. 当前会话没有画布时，调用 `create_image`。
 2. 读取每次成功返回的 `version`。下一次 `edit_image`、`undo_image` 或 `redo_image` 必须把它原样传到 `expectedVersion`。
 3. 每次成功操作都会令 `version` 加 1；**绝不能复用旧版本号**。若收到版本不一致错误，调用 `query_image({ scope: 'summary' })`，再用返回的新版本重试一次。
-4. 调用 `edit_image` 时必须给出 `selection` 和包含 1–32 项的 `ops`。只要不是用户明确要求全图操作，就优先使用精确的 `{ type: 'rect', x, y, w, h }`。
+4. 调用 `edit_image` 时必须给出 `selection` 和包含 1–32 项的 `ops`。有活动选区时用 `{ type: 'current' }`；指定局部范围时用完整且非空的 `{ type: 'rect', x, y, w, h }`（四项都必填，`w`、`h` 均大于 0）。用户明确要求全图，或刚创建的空白画布需要绘制完整构图时，使用 `{ type: 'all' }`。绝不能发送空对象、缺少 `w` / `h` 的 `rect` 或零大小矩形。
 5. 一组彼此依赖的动作可放进同一次 `ops`，它们会原子提交：其中任一项非法，整组不会修改图像。需要中间结果或不同区域时，拆成多次调用并使用新版本号。
 
 `query_image` 只返回尺寸、版本、选区和透明度统计，不能识别画面内容或像素颜色。因此模型应基于自己刚才绘制的坐标继续编辑，并在不能确定位置时询问用户。
@@ -60,7 +60,7 @@ edit_image({
 | 参数 | 用法 |
 | --- | --- |
 | `expectedVersion` | 必填整数，必须等于上一次成功结果的 `version`。 |
-| `selection` | 必填，限制普通绘制可写入的区域。`{ type: 'all' }` 为全图；`{ type: 'rect', x, y, w, h }` 为矩形；`{ type: 'current' }` 只在系统已提供活动选区时可用。当前没有选区时不要猜测使用 `current`。 |
+| `selection` | 必填，限制普通绘制可写入的区域。`{ type: 'all' }` 为全图（仅明确全图操作或新建空白画布的完整构图）；`{ type: 'rect', x, y, w, h }` 为矩形，四个数值必须齐全且 `w`、`h` 大于 0；`{ type: 'current' }` 只在系统已提供活动选区时可用。当前没有选区时不要猜测使用 `current`；也不要用空或零大小 `rect` 代替。 |
 | `ops` | 必填数组，长度 `1–32`。数组内按顺序执行。 |
 
 坐标原点在左上角，`x` 向右、`y` 向下，单位为像素。`w`、`h` 必须大于 0。几何图形会裁剪到画布和 `selection` 内。所有 `color`、`from`、`to` 必须为 `#RRGGBB` 或 `#RRGGBBAA`；`opacity` 是 `0–1` 的数字，省略即为 `1`。
@@ -71,11 +71,13 @@ edit_image({
 | --- | --- | --- |
 | `fill` | `color` | `opacity`；填满整个 `selection`。 |
 | `clear` | 无 | 清空 `selection` 为透明。 |
+| `linear_gradient` | `x1`, `y1`, `x2`, `y2`, `from`, `to` | `opacity`；沿两端点方向连续插值。用于背景、天空、光影，勿用多条 `rect` 模拟渐变。 |
+| `radial_gradient` | `cx`, `cy`, `radius`, `from`, `to` | `opacity`；从中心向外连续插值。用于光晕、球体明暗与柔和阴影。 |
 | `rect` | `x`, `y`, `w`, `h`, `color` | `opacity`；实心矩形。 |
 | `ellipse` | `x`, `y`, `w`, `h`, `color` | `opacity`；椭圆外接矩形。 |
 | `polygon` | `points`, `color` | `opacity`；`points` 为至少 3、最多 128 个 `{x,y}` 顶点。 |
 | `line` | `x1`, `y1`, `x2`, `y2`, `color` | `radius`（笔触半径，`>0` 且不超过 512，默认 1）、`opacity`。 |
-| `brush` | `points`, `color` | `radius`、`opacity`；`points` 为 1–1024 个 `{x,y}` 点，每个点绘制圆形笔触。 |
+| `brush` | `points`, `color` | `radius`、`opacity`；`points` 为 1–1024 个 `{x,y}` 点，内核会在相邻点间连续补笔，适合有机轮廓。 |
 | `flood_fill` | `x`, `y`, `color` | `tolerance`（`0–255`，默认 0）；种子点必须在 `selection` 内，填充不会越过该选区。 |
 | `replace_color` | `from`, `to` | `tolerance`（`0–255`，默认 0）；仅替换 `selection` 内 RGBA 每通道误差均不超过容差的像素。 |
 | `crop` | `x`, `y`, `w`, `h` | 裁切并改变画布尺寸；完成后选区会清除。建议单独一次调用。 |
@@ -111,7 +113,8 @@ redo_image({ expectedVersion: 3 })
 | --- | --- |
 | `expectedVersion does not match` | 查询 `summary` 获取新版本；只重试一次，且不要重放一个可能已成功的请求。 |
 | 已有图像时再次创建 | 没有明确覆盖授权时，改为 `edit_image`；有授权才传 `replace: true`。 |
-| `selection` 非法或 `current` 无选区 | 用 `{ type: 'rect', ... }` 指定范围，或在用户明确要求时使用 `{ type: 'all' }`。 |
+| `selection must be a non-empty rectangle` | `rect` 缺少 `x`、`y`、`w`、`h`，`w` / `h` 不大于 0，或整块区域都在画布外。改用完整的非空 `rect`；有活动选区时用 `current`；新建空白画布的完整构图可用 `all`。 |
+| `selection` 非法或 `current` 无选区 | 用完整的 `{ type: 'rect', x, y, w, h }` 指定范围；仅明确全图操作或新建空白画布的完整构图时使用 `{ type: 'all' }`。 |
 | 颜色格式错误 | 改成完整的 `#RRGGBB` / `#RRGGBBAA`，例如 `#22c55e`，不要用 `red`、`#fff`。 |
 | 不支持的操作 | 仅使用上表列出的 12 种 `op`；不要使用 PRD 中尚未实现的 `text`、`inpaint`、`rotate`、`generate` 等操作。 |
 
