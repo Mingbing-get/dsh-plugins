@@ -59,6 +59,34 @@ describe('raster document', () => {
     expect(red[2]).toBeLessThan(red[3]!)
   })
 
+  it('accepts gradients without a color field and identifies invalid endpoint fields', () => {
+    const doc = createDocument(2, 1, 'transparent')
+    edit(doc, { x: 0, y: 0, w: 2, h: 1 }, [
+      { op: 'radial_gradient', cx: 0, cy: 0, radius: 2, from: '#000000', to: '#ffffff' },
+    ])
+    expect(doc.version).toBe(2)
+    expect(() =>
+      edit(doc, { x: 0, y: 0, w: 2, h: 1 }, [
+        { op: 'linear_gradient', x1: 0, y1: 0, x2: 2, y2: 0, from: undefined, to: '#ffffff' },
+      ] as never),
+    ).toThrow('linear_gradient.from must be a string')
+  })
+
+  it('accepts colors arrays for multi-stop gradients', () => {
+    const doc = createDocument(4, 1, 'transparent')
+    edit(doc, { x: 0, y: 0, w: 4, h: 1 }, [
+      {
+        op: 'linear_gradient',
+        x1: 0,
+        y1: 0,
+        x2: 4,
+        y2: 0,
+        colors: ['#000000', '#ff0000', '#ffffff'],
+      },
+    ])
+    expect(Array.from(doc.pixels.slice(4, 8))).toEqual([191, 0, 0, 255])
+  })
+
   it('connects successive brush points into one stroke', () => {
     const doc = createDocument(8, 1, 'transparent')
     edit(doc, { x: 0, y: 0, w: 8, h: 1 }, [

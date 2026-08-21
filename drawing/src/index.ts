@@ -212,7 +212,7 @@ export function apply(ctx: Context): void {
     defineTool({
       name: 'edit_image',
       description:
-        '以单个原子事务执行栅格编辑。expectedVersion 必须等于上一成功调用返回的 version；每次成功后使用新返回的 version。selection 必填且只能三选一：{type:"current"}（系统已提供活动选区时优先使用）、{type:"rect",x,y,w,h}（x、y、w、h 四项均为有限像素数，w、h 必须 > 0，且矩形至少有 1 个像素落在画布内）、{type:"all"}（用户明确要求全图，或在刚创建的空白画布上要求绘制完整构图）。绝不能发送空对象、缺失 w/h 的 rect、或 w/h 为 0 的 rect。若要编辑已有画面的未指定位置且没有活动选区，先 query_image 获取尺寸；仍无法确定区域时询问用户，不要猜测坐标。ops 是 1–32 个操作的数组；支持 fill、clear、linear_gradient、radial_gradient、rect、ellipse、polygon、line、brush、replace_color、flood_fill、crop、resize、flip。画背景、天空、光影和阴影时优先用单个 gradient（不要用一排 rect 模拟渐变）；画有机轮廓时优先用 brush、line、ellipse 或 polygon，rect 只用于确实的硬边矩形。所有颜色只能写 #RRGGBB 或 #RRGGBBAA，opacity 为 0–1；坐标均为画布像素坐标。具体每种 op 参数见插件 README，勿提交 URL、Base64、Canvas 代码或未支持的 op。',
+        '以单个原子事务执行栅格编辑。expectedVersion 必须等于上一成功调用返回的 version；每次成功后使用新返回的 version。selection 必填且只能三选一：{type:"current"}（系统已提供活动选区时优先使用）、{type:"rect",x,y,w,h}（x、y、w、h 四项均为有限像素数，w、h 必须 > 0，且矩形至少有 1 个像素落在画布内）、{type:"all"}（用户明确要求全图，或在刚创建的空白画布上要求绘制完整构图）。绝不能发送空对象、缺失 w/h 的 rect、或 w/h 为 0 的 rect。若要编辑已有画面的未指定位置且没有活动选区，先 query_image 获取尺寸；仍无法确定区域时询问用户，不要猜测坐标。ops 是 1–32 个操作的数组；支持 fill、clear、linear_gradient、radial_gradient、rect、ellipse、polygon、line、brush、replace_color、flood_fill、crop、resize、flip。渐变必须使用 `from` 和 `to` 两端颜色，或 `colors`（2–16 个颜色字符串）实现多色渐变；不要传单独的 `color`。画背景、天空、光影和阴影时优先用单个 gradient（不要用一排 rect 模拟渐变）；画有机轮廓时优先用 brush、line、ellipse 或 polygon，rect 只用于确实的硬边矩形。所有颜色只能写 #RRGGBB 或 #RRGGBBAA，opacity 为 0–1；坐标均为画布像素坐标。具体每种 op 参数见插件 README，勿提交 URL、Base64、Canvas 代码或未支持的 op。',
       parameters: {
         expectedVersion: {
           type: 'integer',

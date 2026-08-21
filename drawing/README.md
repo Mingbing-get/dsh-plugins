@@ -63,26 +63,26 @@ edit_image({
 | `selection`       | 必填，限制普通绘制可写入的区域。`{ type: 'all' }` 为全图（仅明确全图操作或新建空白画布的完整构图）；`{ type: 'rect', x, y, w, h }` 为矩形，四个数值必须齐全且 `w`、`h` 大于 0；`{ type: 'current' }` 只在系统已提供活动选区时可用。当前没有选区时不要猜测使用 `current`；也不要用空或零大小 `rect` 代替。 |
 | `ops`             | 必填数组，长度 `1–32`。数组内按顺序执行。                                                                                                                                                                                                                                                                 |
 
-坐标原点在左上角，`x` 向右、`y` 向下，单位为像素。`w`、`h` 必须大于 0。几何图形会裁剪到画布和 `selection` 内。所有 `color`、`from`、`to` 必须为 `#RRGGBB` 或 `#RRGGBBAA`；`opacity` 是 `0–1` 的数字，省略即为 `1`。
+坐标原点在左上角，`x` 向右、`y` 向下，单位为像素。`w`、`h` 必须大于 0。几何图形会裁剪到画布和 `selection` 内。所有 `color`、`from`、`to` 及 `colors` 数组中的元素必须为 `#RRGGBB` 或 `#RRGGBBAA`；`opacity` 是 `0–1` 的数字，省略即为 `1`。
 
 ### `ops` 参数速查
 
-| `op`              | 必填字段                             | 可选字段与说明                                                                                  |
-| ----------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| `fill`            | `color`                              | `opacity`；填满整个 `selection`。                                                               |
-| `clear`           | 无                                   | 清空 `selection` 为透明。                                                                       |
-| `linear_gradient` | `x1`, `y1`, `x2`, `y2`, `from`, `to` | `opacity`；沿两端点方向连续插值。用于背景、天空、光影，勿用多条 `rect` 模拟渐变。               |
-| `radial_gradient` | `cx`, `cy`, `radius`, `from`, `to`   | `opacity`；从中心向外连续插值。用于光晕、球体明暗与柔和阴影。                                   |
-| `rect`            | `x`, `y`, `w`, `h`, `color`          | `opacity`；实心矩形。                                                                           |
-| `ellipse`         | `x`, `y`, `w`, `h`, `color`          | `opacity`；椭圆外接矩形。                                                                       |
-| `polygon`         | `points`, `color`                    | `opacity`；`points` 为至少 3、最多 128 个 `{x,y}` 顶点。                                        |
-| `line`            | `x1`, `y1`, `x2`, `y2`, `color`      | `radius`（笔触半径，`>0` 且不超过 512，默认 1）、`opacity`。                                    |
-| `brush`           | `points`, `color`                    | `radius`、`opacity`；`points` 为 1–1024 个 `{x,y}` 点，内核会在相邻点间连续补笔，适合有机轮廓。 |
-| `flood_fill`      | `x`, `y`, `color`                    | `tolerance`（`0–255`，默认 0）；种子点必须在 `selection` 内，填充不会越过该选区。               |
-| `replace_color`   | `from`, `to`                         | `tolerance`（`0–255`，默认 0）；仅替换 `selection` 内 RGBA 每通道误差均不超过容差的像素。       |
-| `crop`            | `x`, `y`, `w`, `h`                   | 裁切并改变画布尺寸；完成后选区会清除。建议单独一次调用。                                        |
-| `resize`          | `width`, `height`                    | 新尺寸限制同创建画布；使用最近邻缩放，完成后选区会清除。建议单独一次调用。                      |
-| `flip`            | `axis`                               | `axis` 只能是 `horizontal`（左右翻转）或 `vertical`（上下翻转）。                               |
+| `op`              | 必填字段                                               | 可选字段与说明                                                                                            |
+| ----------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `fill`            | `color`                                                | `opacity`；填满整个 `selection`。                                                                         |
+| `clear`           | 无                                                     | 清空 `selection` 为透明。                                                                                 |
+| `linear_gradient` | `x1`, `y1`, `x2`, `y2`，以及 `from` + `to` 或 `colors` | `colors` 为 2–16 个颜色，按顺序均匀插值；`opacity` 可选。用于背景、天空、光影，勿用多条 `rect` 模拟渐变。 |
+| `radial_gradient` | `cx`, `cy`, `radius`，以及 `from` + `to` 或 `colors`   | `colors` 为 2–16 个颜色，按中心向外顺序均匀插值；`opacity` 可选。用于光晕、球体明暗与柔和阴影。           |
+| `rect`            | `x`, `y`, `w`, `h`, `color`                            | `opacity`；实心矩形。                                                                                     |
+| `ellipse`         | `x`, `y`, `w`, `h`, `color`                            | `opacity`；椭圆外接矩形。                                                                                 |
+| `polygon`         | `points`, `color`                                      | `opacity`；`points` 为至少 3、最多 128 个 `{x,y}` 顶点。                                                  |
+| `line`            | `x1`, `y1`, `x2`, `y2`, `color`                        | `radius`（笔触半径，`>0` 且不超过 512，默认 1）、`opacity`。                                              |
+| `brush`           | `points`, `color`                                      | `radius`、`opacity`；`points` 为 1–1024 个 `{x,y}` 点，内核会在相邻点间连续补笔，适合有机轮廓。           |
+| `flood_fill`      | `x`, `y`, `color`                                      | `tolerance`（`0–255`，默认 0）；种子点必须在 `selection` 内，填充不会越过该选区。                         |
+| `replace_color`   | `from`, `to`                                           | `tolerance`（`0–255`，默认 0）；仅替换 `selection` 内 RGBA 每通道误差均不超过容差的像素。                 |
+| `crop`            | `x`, `y`, `w`, `h`                                     | 裁切并改变画布尺寸；完成后选区会清除。建议单独一次调用。                                                  |
+| `resize`          | `width`, `height`                                      | 新尺寸限制同创建画布；使用最近邻缩放，完成后选区会清除。建议单独一次调用。                                |
+| `flip`            | `axis`                                                 | `axis` 只能是 `horizontal`（左右翻转）或 `vertical`（上下翻转）。                                         |
 
 示例：在浅色背景上画一个太阳和地平线。一次成功后，使用结果的 `version` 继续下一笔。
 

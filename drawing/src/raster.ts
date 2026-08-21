@@ -37,8 +37,9 @@ export type EditOperation =
       y1: number
       x2: number
       y2: number
-      from: string
-      to: string
+      from?: string
+      to?: string
+      colors?: string[]
       opacity?: number
     }
   | {
@@ -46,8 +47,9 @@ export type EditOperation =
       cx: number
       cy: number
       radius: number
-      from: string
-      to: string
+      from?: string
+      to?: string
+      colors?: string[]
       opacity?: number
     }
   | { op: 'rect'; x: number; y: number; w: number; h: number; color: string; opacity?: number }
@@ -195,11 +197,11 @@ function restore(doc: ImageDocument, state: HistoryEntry): void {
   doc.height = state.height
   doc.selection = state.selection
 }
-function parseColor(input: string): [number, number, number, number] {
+function parseColor(input: unknown, field = 'color'): [number, number, number, number] {
   if (typeof input !== 'string')
-    throw new DrawingError('colors must be strings in #RRGGBB or #RRGGBBAA format')
+    throw new DrawingError(`${field} must be a string in #RRGGBB or #RRGGBBAA format`)
   const match = /^#([0-9a-f]{6}|[0-9a-f]{8})$/i.exec(input)
-  if (match === null) throw new DrawingError('colors must be #RRGGBB or #RRGGBBAA')
+  if (match === null) throw new DrawingError(`${field} must be #RRGGBB or #RRGGBBAA`)
   const hex = match[1]!
   return [
     parseInt(hex.slice(0, 2), 16),
@@ -384,6 +386,24 @@ function interpolate(
     Math.round(from[channel]! + (to[channel]! - from[channel]!) * amount),
   ) as [number, number, number, number]
 }
+function gradientColors(
+  op: Extract<EditOperation, { op: 'linear_gradient' | 'radial_gradient' }>,
+): Array<[number, number, number, number]> {
+  if (op.colors !== undefined) {
+    if (!Array.isArray(op.colors) || op.colors.length < 2 || op.colors.length > 16)
+      throw new DrawingError('gradient.colors must be an array containing 2 to 16 colors')
+    return op.colors.map((color, index) => parseColor(color, `gradient.colors[${index}]`))
+  }
+  return [parseColor(op.from, `${op.op}.from`), parseColor(op.to, `${op.op}.to`)]
+}
+function interpolateGradient(
+  colors: Array<[number, number, number, number]>,
+  amount: number,
+): [number, number, number, number] {
+  const scaled = amount * (colors.length - 1)
+  const index = Math.min(colors.length - 2, Math.floor(scaled))
+  return interpolate(colors[index]!, colors[index + 1]!, scaled - index)
+}
 function linearGradient(
   doc: ImageDocument,
   target: Rect,
@@ -395,15 +415,14 @@ function linearGradient(
   const dy = op.y2 - op.y1
   const lengthSquared = dx * dx + dy * dy
   if (lengthSquared === 0) throw new DrawingError('linear_gradient endpoints must not be identical')
-  const from = parseColor(op.from)
-  const to = parseColor(op.to)
+  const colors = gradientColors(op)
   const alpha = opacity(op.opacity)
   forRect(target, (x, y) => {
     const amount = Math.max(
       0,
       Math.min(1, ((x + 0.5 - op.x1) * dx + (y + 0.5 - op.y1) * dy) / lengthSquared),
     )
-    paint(doc, x, y, interpolate(from, to, amount), alpha)
+    paint(doc, x, y, interpolateGradient(colors, amount), alpha)
   })
 }
 function radialGradient(
@@ -413,15 +432,17 @@ function radialGradient(
 ): void {
   if (![op.cx, op.cy, op.radius].every(Number.isFinite) || op.radius <= 0)
     throw new DrawingError('radial_gradient requires finite cx, cy, and radius > 0')
-  const from = parseColor(op.from)
-  const to = parseColor(op.to)
+  const colors = gradientColors(op)
   const alpha = opacity(op.opacity)
   forRect(target, (x, y) =>
     paint(
       doc,
       x,
       y,
-      interpolate(from, to, Math.min(1, Math.hypot(x + 0.5 - op.cx, y + 0.5 - op.cy) / op.radius)),
+      interpolateGradient(
+        colors,
+        Math.min(1, Math.hypot(x + 0.5 - op.cx, y + 0.5 - op.cy) / op.radius),
+      ),
       alpha,
     ),
   )
