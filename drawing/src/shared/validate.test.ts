@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { validateEditOperation } from './validate.ts'
+import {
+  validateCreateImageArguments,
+  validateEditOperation,
+  validateQueryImageArguments,
+  validateVersionedImageArguments,
+} from './validate.ts'
 
 describe('validateEditOperation', () => {
   it('accepts filled, outlined, and filled-and-outlined shapes', () => {
@@ -61,5 +66,28 @@ describe('validateEditOperation', () => {
         strokeWidth: 1,
       }).isError,
     ).toBe(true)
+  })
+})
+
+describe('tool argument validators', () => {
+  it('validates create image arguments', () => {
+    expect(validateCreateImageArguments({ width: 1, height: 1 }).isError).toBe(false)
+    expect(validateCreateImageArguments({ width: 0, height: 1 }).isError).toBe(true)
+    expect(validateCreateImageArguments({ width: 1, height: 1, background: 'white' }).isError).toBe(
+      true,
+    )
+  })
+
+  it('requires bounds for region image queries', () => {
+    expect(validateQueryImageArguments({ scope: 'summary' }).isError).toBe(false)
+    expect(validateQueryImageArguments({ scope: 'region' }).isError).toBe(true)
+    expect(
+      validateQueryImageArguments({ scope: 'region', bounds: { x: 0, y: 0, w: 1, h: 1 } }).isError,
+    ).toBe(false)
+  })
+
+  it('validates versioned image arguments', () => {
+    expect(validateVersionedImageArguments({ expectedVersion: 0 }).isError).toBe(false)
+    expect(validateVersionedImageArguments({ expectedVersion: -1 }).isError).toBe(true)
   })
 })

@@ -152,6 +152,47 @@ export function validateEditImageArguments(value: unknown): ValidationResult {
   return success()
 }
 
+export function validateCreateImageArguments(value: unknown): ValidationResult {
+  if (!isRecord(value)) return failure('create image arguments must be an object')
+  if (!isPositiveInteger(value.width) || !isPositiveInteger(value.height)) {
+    return failure('width and height must be positive integers')
+  }
+  if (
+    value.background !== undefined &&
+    value.background !== 'transparent' &&
+    !isColor(value.background)
+  ) {
+    return failure('background must be transparent or a valid color')
+  }
+  if (value.replace !== undefined && typeof value.replace !== 'boolean') {
+    return failure('replace must be a boolean')
+  }
+
+  return success()
+}
+
+export function validateQueryImageArguments(value: unknown): ValidationResult {
+  if (!isRecord(value)) return failure('query image arguments must be an object')
+  if (value.scope !== 'summary' && value.scope !== 'selection' && value.scope !== 'region') {
+    return failure('scope must be summary, selection, or region')
+  }
+  if (value.scope === 'region' && value.bounds === undefined) {
+    return failure('bounds is required when scope is region')
+  }
+  if (value.bounds !== undefined) return validateRect(value.bounds)
+
+  return success()
+}
+
+export function validateVersionedImageArguments(value: unknown): ValidationResult {
+  if (!isRecord(value)) return failure('versioned image arguments must be an object')
+  if (!isNonNegativeInteger(value.expectedVersion)) {
+    return failure('expectedVersion must be a non-negative integer')
+  }
+
+  return success()
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
