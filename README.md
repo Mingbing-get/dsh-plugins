@@ -9,6 +9,8 @@ dsh plugin --profile web add @meing/dsh-gomoku-plugin
 dsh plugin --profile web add @meing/dsh-codegraph-plugin
 ```
 
+`@meing/dsh-drawing-plugin` 已建立产品与工程骨架，当前尚未实现或发布。
+
 如需可复现安装，请指定版本：
 
 ```sh

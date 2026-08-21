@@ -1,0 +1,51 @@
+{
+  "name": "@meing/dsh-drawing-plugin",
+  "version": "0.1.0",
+  "description": "AI-operated canvas drawing plugin scaffold for DeepSeek Harness",
+  "private": true,
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "PRD.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/clean.mjs && tsc --noEmit && tsdown",
+    "prepack": "pnpm build",
+    "test": "vitest run --passWithNoTests",
+    "pack:check": "npm_config_cache=/private/tmp/dsh-drawing-npm-cache npm pack --dry-run"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.0",
+    "@deepseek-ai/dsh-tools": ">=0.0.1-0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "link:../../../test/deepseek-harness/vendor/cordis",
+    "@deepseek-ai/dsh-tools": "link:../../../test/deepseek-harness/packages/core/tools",
+    "tsdown": "^0.22.14",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "license": "MIT",
+  "packageManager": "pnpm@11.22.0"
+}
