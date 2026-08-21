@@ -1,19 +1,21 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ToolDefinition, ToolRunContext } from '@deepseek-ai/dsh-tools'
-import type { AskUserQuestionAnswer, AskUserQuestionRequest } from '@deepseek-ai/dsh-user-questions'
+import type { AskUserQuestionAnswer } from '@deepseek-ai/dsh-user-questions'
 import { apply } from '../src/index.ts'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
-  const promise = new Promise<T>(done => { resolve = done })
+  const promise = new Promise<T>((done) => {
+    resolve = done
+  })
   return { promise, resolve }
 }
 
 describe('Gomoku tools', () => {
   it('keeps gomoku_start pending until the user places a stone', async () => {
     const answer = deferred<AskUserQuestionAnswer>()
-    const ask = vi.fn((_request: AskUserQuestionRequest) => answer.promise)
+    const ask = vi.fn(() => answer.promise)
     const registered = new Map<string, ToolDefinition>()
     const ctx = {
       tools: {
@@ -33,7 +35,9 @@ describe('Gomoku tools', () => {
     } as unknown as ToolRunContext
     const call = registered.get('gomoku_start')!.execute({}, exec)
     let settled = false
-    void call.then(() => { settled = true })
+    void call.then(() => {
+      settled = true
+    })
     await Promise.resolve()
 
     expect(settled).toBe(false)
@@ -44,7 +48,10 @@ describe('Gomoku tools', () => {
     answer.resolve({
       answers: [{ id: 'gomoku-move', selected: [], custom: JSON.stringify({ row: 8, column: 8 }) }],
     })
-    const value = await call as { user_move: { row: number; column: number }; game: { next: string } }
+    const value = (await call) as {
+      user_move: { row: number; column: number }
+      game: { next: string }
+    }
     expect(value.user_move).toEqual({ row: 8, column: 8 })
     expect(value.game.next).toBe('model')
   })

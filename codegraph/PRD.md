@@ -324,7 +324,19 @@ type BackendMode = 'mcp' | 'cli' | 'auto'
 ```ts
 interface WorkspaceRuntime {
   root: string
-  state: 'new' | 'detecting' | 'skipped' | 'checking' | 'initializing' | 'syncing' | 'connecting' | 'probing' | 'ready' | 'degraded' | 'closing' | 'closed'
+  state:
+    | 'new'
+    | 'detecting'
+    | 'skipped'
+    | 'checking'
+    | 'initializing'
+    | 'syncing'
+    | 'connecting'
+    | 'probing'
+    | 'ready'
+    | 'degraded'
+    | 'closing'
+    | 'closed'
   preparePromise?: Promise<void>
   mutationTail: Promise<void>
   client?: unknown
@@ -670,19 +682,19 @@ Runtime Ready 后修改一个受支持源文件，在集成测试夹具规定的
 
 ## 14. 风险与缓解
 
-| 风险 | 影响 | 缓解 |
-| --- | --- | --- |
-| CodeGraph MCP 工具列表或 schema 变化 | DSH 工具调用失败 | 锁定精确版本，维护 adapter 和契约测试 |
-| 首次索引大型仓库耗时长 | 第一条消息等待且模型尚未调用 | 可配置超时、阶段状态与 Web 进度；超时后明确失败，不得静默旁路 |
-| 代码目录误判 | 非代码目录被写入索引，或代码目录缺少上下文 | 与 CodeGraph 锁定版本共享语言清单、尊重 ignore、检测上限与集成夹具 |
-| 自动注入上下文过大或含提示注入 | 挤占模型窗口或影响指令遵循 | token 上限、去重、稳定边界标签，将仓库内容明确标记为不可信数据 |
-| 多 Session 同时初始化 | SQLite 锁或重复进程 | Workspace 级单例 Promise 和串行 mutation tail |
-| MCP daemon 脱离 DSH 生命周期 | 应用关闭后残留进程 | 首版默认 `CODEGRAPH_NO_DAEMON=1` |
-| MCP watcher 与 CLI sync 同时写入 | 锁冲突 | 先 init/sync，再启动 MCP；Runtime 内串行写操作 |
-| 平台包未被镜像同步 | CLI 无法启动 | 安装诊断、锁定版本、CI 校验标准 registry 与目标平台 |
-| 索引损坏 | 查询错误或启动失败 | 不静默删除；Degraded 并提供显式恢复说明 |
-| Workspace 路径混淆 | 查询错误仓库或越权 | 只信任 session header.cwd、realpath、禁止工具覆盖 cwd |
-| CLI 文本输出变更 | 降级解析失败 | 仅依赖退出码和稳定命令；文本适配加版本契约测试 |
+| 风险                                 | 影响                                       | 缓解                                                               |
+| ------------------------------------ | ------------------------------------------ | ------------------------------------------------------------------ |
+| CodeGraph MCP 工具列表或 schema 变化 | DSH 工具调用失败                           | 锁定精确版本，维护 adapter 和契约测试                              |
+| 首次索引大型仓库耗时长               | 第一条消息等待且模型尚未调用               | 可配置超时、阶段状态与 Web 进度；超时后明确失败，不得静默旁路      |
+| 代码目录误判                         | 非代码目录被写入索引，或代码目录缺少上下文 | 与 CodeGraph 锁定版本共享语言清单、尊重 ignore、检测上限与集成夹具 |
+| 自动注入上下文过大或含提示注入       | 挤占模型窗口或影响指令遵循                 | token 上限、去重、稳定边界标签，将仓库内容明确标记为不可信数据     |
+| 多 Session 同时初始化                | SQLite 锁或重复进程                        | Workspace 级单例 Promise 和串行 mutation tail                      |
+| MCP daemon 脱离 DSH 生命周期         | 应用关闭后残留进程                         | 首版默认 `CODEGRAPH_NO_DAEMON=1`                                   |
+| MCP watcher 与 CLI sync 同时写入     | 锁冲突                                     | 先 init/sync，再启动 MCP；Runtime 内串行写操作                     |
+| 平台包未被镜像同步                   | CLI 无法启动                               | 安装诊断、锁定版本、CI 校验标准 registry 与目标平台                |
+| 索引损坏                             | 查询错误或启动失败                         | 不静默删除；Degraded 并提供显式恢复说明                            |
+| Workspace 路径混淆                   | 查询错误仓库或越权                         | 只信任 session header.cwd、realpath、禁止工具覆盖 cwd              |
+| CLI 文本输出变更                     | 降级解析失败                               | 仅依赖退出码和稳定命令；文本适配加版本契约测试                     |
 
 ## 15. 开发前需产出的契约
 

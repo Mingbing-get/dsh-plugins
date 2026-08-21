@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SerializableGame } from '../game.ts'
 import type { GomokuStore } from './store.ts'
@@ -30,7 +36,13 @@ function turnLabel(game: SerializableGame, wait: GomokuWait | null, awaitingUser
 export function GomokuWindow({ game, wait, x, y, awaitingUser, actions }: GomokuWindowProps) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const drag = useRef<{ pointerId: number; dx: number; dy: number; width: number; height: number } | null>(null)
+  const drag = useRef<{
+    pointerId: number
+    dx: number
+    dy: number
+    width: number
+    height: number
+  } | null>(null)
   const frame = useRef<number | null>(null)
   const latest = useRef<{ x: number; y: number } | null>(null)
 
@@ -38,9 +50,12 @@ export function GomokuWindow({ game, wait, x, y, awaitingUser, actions }: Gomoku
     if (wait === null) setPending(false)
   }, [wait])
 
-  useEffect(() => () => {
-    if (frame.current !== null) cancelAnimationFrame(frame.current)
-  }, [])
+  useEffect(
+    () => () => {
+      if (frame.current !== null) cancelAnimationFrame(frame.current)
+    },
+    [],
+  )
 
   const cellSize = game.size > 19 ? 20 : game.size > 15 ? 23 : 27
   const style = {
@@ -59,7 +74,9 @@ export function GomokuWindow({ game, wait, x, y, awaitingUser, actions }: Gomoku
         ok: true,
         value: {
           sessionId: wait.sessionId,
-          answer: { answers: [{ id: 'gomoku-move', selected: [], custom: JSON.stringify({ row, column }) }] },
+          answer: {
+            answers: [{ id: 'gomoku-move', selected: [], custom: JSON.stringify({ row, column }) }],
+          },
         },
       })
       if (!receipt.accepted) throw new Error(`落子未被接受：${receipt.reason}`)
@@ -122,40 +139,72 @@ export function GomokuWindow({ game, wait, x, y, awaitingUser, actions }: Gomoku
         <div>
           <p className="dsh-gomoku-kicker">DeepSeek 对弈室</p>
           <h2 className="dsh-gomoku-title">五子棋</h2>
-          <p className="dsh-gomoku-meta">{game.size} × {game.size} · 你执{game.userStone === 'black' ? '黑子' : '白子'} · 拖动标题栏移动</p>
+          <p className="dsh-gomoku-meta">
+            {game.size} × {game.size} · 你执{game.userStone === 'black' ? '黑子' : '白子'} ·
+            拖动标题栏移动
+          </p>
         </div>
         <div className="dsh-gomoku-header-actions">
-          <div className="dsh-gomoku-turn">{pending ? '落子确认中' : turnLabel(game, wait, awaitingUser)}</div>
-          <button className="dsh-gomoku-close" type="button" aria-label="关闭棋盘" onClick={() => { actions.close() }}>×</button>
+          <div className="dsh-gomoku-turn">
+            {pending ? '落子确认中' : turnLabel(game, wait, awaitingUser)}
+          </div>
+          <button
+            className="dsh-gomoku-close"
+            type="button"
+            aria-label="关闭棋盘"
+            onClick={() => {
+              actions.close()
+            }}
+          >
+            ×
+          </button>
         </div>
       </header>
       <div className="dsh-gomoku-body">
         <div className="dsh-gomoku-board-wrap">
-          <div className="dsh-gomoku-board" role="grid" aria-label={`${game.size}乘${game.size}五子棋棋盘`} style={boardStyle}>
-            {game.board.flatMap((line, row) => [...line].map((value, column) => {
-              const color = stoneColor(game, value)
-              const last = game.lastMove?.row === row + 1 && game.lastMove.column === column + 1
-              const playable = wait !== null && awaitingUser && !pending && value === '.'
-              return (
-                <button
-                  className="dsh-gomoku-cell"
-                  type="button"
-                  role="gridcell"
-                  key={`${row}:${column}`}
-                  disabled={!playable}
-                  aria-label={`第${row + 1}行，第${column + 1}列${color === null ? '空位' : color === 'black' ? '黑子' : '白子'}`}
-                  onClick={() => { void submit(row + 1, column + 1) }}
-                >
-                  {color !== null && <span className="dsh-gomoku-stone" data-color={color} data-last={last || undefined} />}
-                </button>
-              )
-            }))}
+          <div
+            className="dsh-gomoku-board"
+            role="grid"
+            aria-label={`${game.size}乘${game.size}五子棋棋盘`}
+            style={boardStyle}
+          >
+            {game.board.flatMap((line, row) =>
+              [...line].map((value, column) => {
+                const color = stoneColor(game, value)
+                const last = game.lastMove?.row === row + 1 && game.lastMove.column === column + 1
+                const playable = wait !== null && awaitingUser && !pending && value === '.'
+                return (
+                  <button
+                    className="dsh-gomoku-cell"
+                    type="button"
+                    role="gridcell"
+                    key={`${row}:${column}`}
+                    disabled={!playable}
+                    aria-label={`第${row + 1}行，第${column + 1}列${color === null ? '空位' : color === 'black' ? '黑子' : '白子'}`}
+                    onClick={() => {
+                      void submit(row + 1, column + 1)
+                    }}
+                  >
+                    {color !== null && (
+                      <span
+                        className="dsh-gomoku-stone"
+                        data-color={color}
+                        data-last={last || undefined}
+                      />
+                    )}
+                  </button>
+                )
+              }),
+            )}
           </div>
         </div>
       </div>
       <footer className="dsh-gomoku-footer">
         <span className={error === null ? undefined : 'dsh-gomoku-error'}>
-          {error ?? (wait !== null && awaitingUser ? '点击交叉点落子；窗口会保留，等待模型应手。' : '棋盘会保留在这里；模型下一手到达时会自动刷新并打开。')}
+          {error ??
+            (wait !== null && awaitingUser
+              ? '点击交叉点落子；窗口会保留，等待模型应手。'
+              : '棋盘会保留在这里；模型下一手到达时会自动刷新并打开。')}
         </span>
       </footer>
     </section>

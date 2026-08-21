@@ -9,7 +9,13 @@ export function apply(ctx: ClientContext): void {
   const store = createGomokuStore()
   ctx.effect(installStyles, 'gomoku: styles')
   ctx.slots.inject('tool.call.toolview', function* () {
-    yield ctx.slots.register({ name: 'tool.call.toolview', key: 'gomoku_start', store }, GomokuToolRow)
-    yield ctx.slots.register({ name: 'tool.call.toolview', key: 'gomoku_move', store }, GomokuToolRow)
+    yield ctx.slots.register(
+      { name: 'tool.call.toolview', key: 'gomoku_start', store },
+      GomokuToolRow,
+    )
+    yield ctx.slots.register(
+      { name: 'tool.call.toolview', key: 'gomoku_move', store },
+      GomokuToolRow,
+    )
   })
 }

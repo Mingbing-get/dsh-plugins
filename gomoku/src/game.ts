@@ -48,7 +48,14 @@ export function createGame(size: number, modelFirst: boolean): Game {
   }
 }
 
-function lineLength(game: Game, row: number, column: number, player: Player, dr: number, dc: number): number {
+function lineLength(
+  game: Game,
+  row: number,
+  column: number,
+  player: Player,
+  dr: number,
+  dc: number,
+): number {
   let count = 1
   for (const sign of [-1, 1]) {
     let r = row + dr * sign
@@ -70,12 +77,17 @@ export function place(game: Game, move: Move): void {
   if (row < 0 || row >= game.size || column < 0 || column >= game.size) {
     throw new Error(`row and column must be from 1 to ${game.size}`)
   }
-  if (game.board[row]?.[column] !== null) throw new Error(`cell ${move.row},${move.column} is occupied`)
+  if (game.board[row]?.[column] !== null)
+    throw new Error(`cell ${move.row},${move.column} is occupied`)
   game.board[row]![column] = move.player
   game.moves++
   game.lastMove = { ...move }
-  const won = [[0, 1], [1, 0], [1, 1], [1, -1]]
-    .some(([dr, dc]) => lineLength(game, row, column, move.player, dr!, dc!) >= 5)
+  const won = [
+    [0, 1],
+    [1, 0],
+    [1, 1],
+    [1, -1],
+  ].some(([dr, dc]) => lineLength(game, row, column, move.player, dr!, dc!) >= 5)
   if (won) {
     game.winner = move.player
     game.next = null
@@ -90,7 +102,9 @@ export function serializeGame(game: Game): SerializableGame {
   return {
     id: game.id,
     size: game.size,
-    board: game.board.map(row => row.map(cell => cell === null ? '.' : cell === 'user' ? 'U' : 'M').join('')),
+    board: game.board.map((row) =>
+      row.map((cell) => (cell === null ? '.' : cell === 'user' ? 'U' : 'M')).join(''),
+    ),
     userStone: game.userStone,
     next: game.next,
     winner: game.winner,

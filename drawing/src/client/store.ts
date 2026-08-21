@@ -1,8 +1,93 @@
 import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-runtime/client'
 
-export interface DrawingInfo { imageId: string; version: number; width: number; height: number; selection: Rect | null }
-export interface Rect { x: number; y: number; w: number; h: number }
-interface State { image: DrawingInfo | null; previewUrl: string | null; open: boolean; owner: string | null; x: number | null; y: number | null; zoom: number; panX: number; panY: number; tool: 'pan' | 'select'; selection: Rect | null }
-type Actions = { sync: (draft: State, image: DrawingInfo, owner: string) => void; preview: (draft: State, url: string | null) => void; reveal: (draft: State) => void; close: (draft: State) => void; move: (draft: State, x: number, y: number) => void; zoom: (draft: State, amount: number) => void; pan: (draft: State, x: number, y: number) => void; tool: (draft: State, tool: State['tool']) => void; select: (draft: State, selection: Rect | null) => void }
+export interface DrawingInfo {
+  imageId: string
+  version: number
+  width: number
+  height: number
+  selection: Rect | null
+}
+export interface Rect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+interface State {
+  image: DrawingInfo | null
+  previewUrl: string | null
+  open: boolean
+  owner: string | null
+  x: number | null
+  y: number | null
+  zoom: number
+  panX: number
+  panY: number
+  tool: 'pan' | 'select'
+  selection: Rect | null
+}
+type Actions = {
+  sync: (draft: State, image: DrawingInfo, owner: string) => void
+  preview: (draft: State, url: string | null) => void
+  reveal: (draft: State) => void
+  close: (draft: State) => void
+  move: (draft: State, x: number, y: number) => void
+  zoom: (draft: State, amount: number) => void
+  pan: (draft: State, x: number, y: number) => void
+  tool: (draft: State, tool: State['tool']) => void
+  select: (draft: State, selection: Rect | null) => void
+}
 export type DrawingStore = EngineStoreHandle<State, Actions>
-export function createDrawingStore(): DrawingStore { return defineStore({ init: () => ({ image: null, previewUrl: null, open: false, owner: null, x: null, y: null, zoom: 1, panX: 0, panY: 0, tool: 'pan', selection: null }), actions: { sync(draft, image, owner) { if (draft.image === null || image.version >= draft.image.version) { draft.image = image; draft.owner = owner; draft.selection = image.selection; draft.open = true } }, preview(draft, url) { draft.previewUrl = url }, reveal(draft) { if (draft.image !== null) draft.open = true }, close(draft) { draft.open = false }, move(draft, x, y) { draft.x = x; draft.y = y }, zoom(draft, amount) { draft.zoom = Math.max(.1, Math.min(8, draft.zoom * amount)) }, pan(draft, x, y) { draft.panX = x; draft.panY = y }, tool(draft, tool) { draft.tool = tool }, select(draft, selection) { draft.selection = selection } } }) }
+export function createDrawingStore(): DrawingStore {
+  return defineStore({
+    init: () => ({
+      image: null,
+      previewUrl: null,
+      open: false,
+      owner: null,
+      x: null,
+      y: null,
+      zoom: 1,
+      panX: 0,
+      panY: 0,
+      tool: 'pan',
+      selection: null,
+    }),
+    actions: {
+      sync(draft, image, owner) {
+        if (draft.image === null || image.version >= draft.image.version) {
+          draft.image = image
+          draft.owner = owner
+          draft.selection = image.selection
+          draft.open = true
+        }
+      },
+      preview(draft, url) {
+        draft.previewUrl = url
+      },
+      reveal(draft) {
+        if (draft.image !== null) draft.open = true
+      },
+      close(draft) {
+        draft.open = false
+      },
+      move(draft, x, y) {
+        draft.x = x
+        draft.y = y
+      },
+      zoom(draft, amount) {
+        draft.zoom = Math.max(0.1, Math.min(8, draft.zoom * amount))
+      },
+      pan(draft, x, y) {
+        draft.panX = x
+        draft.panY = y
+      },
+      tool(draft, tool) {
+        draft.tool = tool
+      },
+      select(draft, selection) {
+        draft.selection = selection
+      },
+    },
+  })
+}

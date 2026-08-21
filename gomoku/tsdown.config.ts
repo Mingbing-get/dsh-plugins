@@ -2,8 +2,12 @@ import type { UserConfig } from 'tsdown'
 
 const ID = '@meing/dsh-gomoku-plugin'
 const CLIENT_EXTERNALS = [
-  'react', 'react/jsx-runtime', 'react-dom', 'react-dom/client',
-  '@deepseek-ai/cordis', '@deepseek-ai/dsh-client-ui-slots',
+  'react',
+  'react/jsx-runtime',
+  'react-dom',
+  'react-dom/client',
+  '@deepseek-ai/cordis',
+  '@deepseek-ai/dsh-client-ui-slots',
   '@deepseek-ai/dsh-client-runtime/client',
 ] as const
 
@@ -32,7 +36,8 @@ const client: UserConfig = {
   sourcemap: true,
   clean: false,
   external: [...CLIENT_EXTERNALS],
-  noExternal: (id: string) => CLIENT_EXTERNALS.includes(id as typeof CLIENT_EXTERNALS[number]) ? undefined : true,
+  noExternal: (id: string) =>
+    CLIENT_EXTERNALS.includes(id as (typeof CLIENT_EXTERNALS)[number]) ? undefined : true,
   define: { 'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production') },
   outputOptions: {
     entryFileNames: 'client.js',

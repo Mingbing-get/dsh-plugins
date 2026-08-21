@@ -43,5 +43,7 @@ export function installStyles(): () => void {
   tag.dataset.plugin = 'dsh-gomoku-plugin'
   tag.textContent = styles
   document.head.appendChild(tag)
-  return () => { tag.remove() }
+  return () => {
+    tag.remove()
+  }
 }

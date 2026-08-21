@@ -99,15 +99,7 @@ run('git', ['push', 'origin', tag], { stdio: 'inherit' })
 console.log('创建 GitHub Release 并上传安装包…')
 run(
   'gh',
-  [
-    'release',
-    'create',
-    tag,
-    archive,
-    '--title',
-    `CodeGraph v${version}`,
-    '--generate-notes',
-  ],
+  ['release', 'create', tag, archive, '--title', `CodeGraph v${version}`, '--generate-notes'],
   { stdio: 'inherit' },
 )
 

@@ -2,17 +2,168 @@ import { useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } fr
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
 import type { DrawingInfo, DrawingStore, Rect } from './store.ts'
 
-interface Props { image: DrawingInfo; actions: BoundActions<DrawingStore>; useStore: any }
+interface Props {
+  image: DrawingInfo
+  actions: BoundActions<DrawingStore>
+  useStore: any
+}
 export function DrawingWindow({ image, actions, useStore }: Props) {
-  const x = useStore((s: any) => s.x); const y = useStore((s: any) => s.y); const zoom = useStore((s: any) => s.zoom); const panX = useStore((s: any) => s.panX); const panY = useStore((s: any) => s.panY); const tool = useStore((s: any) => s.tool); const selection = useStore((s: any) => s.selection as Rect | null); const previewUrl = useStore((s: any) => s.previewUrl as string | null)
-  const drag = useRef<{ kind: 'window' | 'selection' | 'pan'; x: number; y: number; ox?: number; oy?: number } | null>(null)
-  const dimensions = { width: Math.min(520, image.width), height: Math.min(360, image.height) }; const scale = Math.min(dimensions.width / image.width, dimensions.height / image.height) * zoom
-  const style = { ...(x === null || y === null ? {} : { left: x, top: y }), '--scale': scale, '--pan-x': `${panX}px`, '--pan-y': `${panY}px` } as CSSProperties
-  const start = (event: ReactPointerEvent<HTMLElement>) => { if ((event.target as HTMLElement).closest('button') !== null) return; const rect = event.currentTarget.parentElement!.getBoundingClientRect(); drag.current = { kind: 'window', x: event.clientX - rect.left, y: event.clientY - rect.top }; event.currentTarget.setPointerCapture(event.pointerId) }
-  const canvasStart = (event: ReactPointerEvent<HTMLDivElement>) => { const box = event.currentTarget.getBoundingClientRect(); if (tool === 'pan') { drag.current = { kind: 'pan', x: event.clientX, y: event.clientY, ox: panX, oy: panY } } else { drag.current = { kind: 'selection', x: event.clientX, y: event.clientY }; actions.select({ x: Math.max(0, Math.floor((event.clientX - box.left - panX) / scale)), y: Math.max(0, Math.floor((event.clientY - box.top - panY) / scale)), w: 1, h: 1 }) }; event.currentTarget.setPointerCapture(event.pointerId) }
-  const move = (event: ReactPointerEvent<HTMLElement>) => { const active = drag.current; if (active === null) return; if (active.kind === 'window') { actions.move(Math.max(8, event.clientX - active.x), Math.max(8, event.clientY - active.y)); return }; if (active.kind === 'pan') { actions.pan(active.ox! + event.clientX - active.x, active.oy! + event.clientY - active.y); return }; const box = event.currentTarget.getBoundingClientRect(); const sx = Math.max(0, Math.floor((active.x - box.left - panX) / scale)); const sy = Math.max(0, Math.floor((active.y - box.top - panY) / scale)); const ex = Math.min(image.width, Math.ceil((event.clientX - box.left - panX) / scale)); const ey = Math.min(image.height, Math.ceil((event.clientY - box.top - panY) / scale)); actions.select({ x: Math.min(sx, ex), y: Math.min(sy, ey), w: Math.abs(ex - sx), h: Math.abs(ey - sy) }) }
-  const end = () => { drag.current = null }
-  const selectionStyle = selection === null ? undefined : { left: selection.x * scale + panX, top: selection.y * scale + panY, width: selection.w * scale, height: selection.h * scale }
-  const save = () => { if (previewUrl === null) return; const link = document.createElement('a'); link.href = previewUrl; link.download = `ai-drawing-v${image.version}.png`; link.click() }
-  return <section className="dsh-drawing-window" data-centered={x === null || y === null || undefined} style={style} role="dialog" aria-label="AI 绘图窗口"><header className="dsh-drawing-header" onPointerDown={start} onPointerMove={move} onPointerUp={end}><div><p>DEEPSEEK · RASTER STUDIO</p><h2>当前画面</h2><small>{image.width} × {image.height} · 版本 {image.version}</small></div><button aria-label="关闭画面" onClick={() => actions.close()}>×</button></header><nav className="dsh-drawing-tools"><button data-active={tool === 'pan' || undefined} onClick={() => actions.tool('pan')}>平移</button><button data-active={tool === 'select' || undefined} onClick={() => actions.tool('select')}>框选</button><button onClick={() => actions.select(null)}>清除</button><button onClick={() => actions.select({ x: 0, y: 0, w: image.width, h: image.height })}>全图</button><i /><button onClick={() => actions.zoom(.8)}>−</button><button onClick={() => actions.zoom(1.25)}>＋</button><button disabled={previewUrl === null} onClick={save}>保存 PNG</button></nav><div className="dsh-drawing-viewport"><div className="dsh-drawing-canvas" style={{ width: image.width * scale, height: image.height * scale, transform: `translate(${panX}px,${panY}px)` }} onPointerDown={canvasStart} onPointerMove={move} onPointerUp={end}>{previewUrl === null ? <span className="dsh-drawing-pixel-note">正在载入预览…</span> : <img src={previewUrl} draggable={false} alt="当前 AI 绘图" />}</div>{selectionStyle !== undefined && <div className="dsh-drawing-selection" style={selectionStyle} />}</div><footer>{selection === null ? '选择框选工具来标记下一次编辑范围' : `选区 x=${selection.x}, y=${selection.y}, w=${selection.w}, h=${selection.h}`}</footer></section>
+  const x = useStore((s: any) => s.x)
+  const y = useStore((s: any) => s.y)
+  const zoom = useStore((s: any) => s.zoom)
+  const panX = useStore((s: any) => s.panX)
+  const panY = useStore((s: any) => s.panY)
+  const tool = useStore((s: any) => s.tool)
+  const selection = useStore((s: any) => s.selection as Rect | null)
+  const previewUrl = useStore((s: any) => s.previewUrl as string | null)
+  const drag = useRef<{
+    kind: 'window' | 'selection' | 'pan'
+    x: number
+    y: number
+    ox?: number
+    oy?: number
+  } | null>(null)
+  const dimensions = { width: Math.min(520, image.width), height: Math.min(360, image.height) }
+  const scale = Math.min(dimensions.width / image.width, dimensions.height / image.height) * zoom
+  const style = {
+    ...(x === null || y === null ? {} : { left: x, top: y }),
+    '--scale': scale,
+    '--pan-x': `${panX}px`,
+    '--pan-y': `${panY}px`,
+  } as CSSProperties
+  const start = (event: ReactPointerEvent<HTMLElement>) => {
+    if ((event.target as HTMLElement).closest('button') !== null) return
+    const rect = event.currentTarget.parentElement!.getBoundingClientRect()
+    drag.current = { kind: 'window', x: event.clientX - rect.left, y: event.clientY - rect.top }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+  const canvasStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const box = event.currentTarget.getBoundingClientRect()
+    if (tool === 'pan') {
+      drag.current = { kind: 'pan', x: event.clientX, y: event.clientY, ox: panX, oy: panY }
+    } else {
+      drag.current = { kind: 'selection', x: event.clientX, y: event.clientY }
+      actions.select({
+        x: Math.max(0, Math.floor((event.clientX - box.left - panX) / scale)),
+        y: Math.max(0, Math.floor((event.clientY - box.top - panY) / scale)),
+        w: 1,
+        h: 1,
+      })
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+  const move = (event: ReactPointerEvent<HTMLElement>) => {
+    const active = drag.current
+    if (active === null) return
+    if (active.kind === 'window') {
+      actions.move(Math.max(8, event.clientX - active.x), Math.max(8, event.clientY - active.y))
+      return
+    }
+    if (active.kind === 'pan') {
+      actions.pan(active.ox! + event.clientX - active.x, active.oy! + event.clientY - active.y)
+      return
+    }
+    const box = event.currentTarget.getBoundingClientRect()
+    const sx = Math.max(0, Math.floor((active.x - box.left - panX) / scale))
+    const sy = Math.max(0, Math.floor((active.y - box.top - panY) / scale))
+    const ex = Math.min(image.width, Math.ceil((event.clientX - box.left - panX) / scale))
+    const ey = Math.min(image.height, Math.ceil((event.clientY - box.top - panY) / scale))
+    actions.select({
+      x: Math.min(sx, ex),
+      y: Math.min(sy, ey),
+      w: Math.abs(ex - sx),
+      h: Math.abs(ey - sy),
+    })
+  }
+  const end = () => {
+    drag.current = null
+  }
+  const selectionStyle =
+    selection === null
+      ? undefined
+      : {
+          left: selection.x * scale + panX,
+          top: selection.y * scale + panY,
+          width: selection.w * scale,
+          height: selection.h * scale,
+        }
+  const save = () => {
+    if (previewUrl === null) return
+    const link = document.createElement('a')
+    link.href = previewUrl
+    link.download = `ai-drawing-v${image.version}.png`
+    link.click()
+  }
+  return (
+    <section
+      className="dsh-drawing-window"
+      data-centered={x === null || y === null || undefined}
+      style={style}
+      role="dialog"
+      aria-label="AI 绘图窗口"
+    >
+      <header
+        className="dsh-drawing-header"
+        onPointerDown={start}
+        onPointerMove={move}
+        onPointerUp={end}
+      >
+        <div>
+          <p>DEEPSEEK · RASTER STUDIO</p>
+          <h2>当前画面</h2>
+          <small>
+            {image.width} × {image.height} · 版本 {image.version}
+          </small>
+        </div>
+        <button aria-label="关闭画面" onClick={() => actions.close()}>
+          ×
+        </button>
+      </header>
+      <nav className="dsh-drawing-tools">
+        <button data-active={tool === 'pan' || undefined} onClick={() => actions.tool('pan')}>
+          平移
+        </button>
+        <button data-active={tool === 'select' || undefined} onClick={() => actions.tool('select')}>
+          框选
+        </button>
+        <button onClick={() => actions.select(null)}>清除</button>
+        <button onClick={() => actions.select({ x: 0, y: 0, w: image.width, h: image.height })}>
+          全图
+        </button>
+        <i />
+        <button onClick={() => actions.zoom(0.8)}>−</button>
+        <button onClick={() => actions.zoom(1.25)}>＋</button>
+        <button disabled={previewUrl === null} onClick={save}>
+          保存 PNG
+        </button>
+      </nav>
+      <div className="dsh-drawing-viewport">
+        <div
+          className="dsh-drawing-canvas"
+          style={{
+            width: image.width * scale,
+            height: image.height * scale,
+            transform: `translate(${panX}px,${panY}px)`,
+          }}
+          onPointerDown={canvasStart}
+          onPointerMove={move}
+          onPointerUp={end}
+        >
+          {previewUrl === null ? (
+            <span className="dsh-drawing-pixel-note">正在载入预览…</span>
+          ) : (
+            <img src={previewUrl} draggable={false} alt="当前 AI 绘图" />
+          )}
+        </div>
+        {selectionStyle !== undefined && (
+          <div className="dsh-drawing-selection" style={selectionStyle} />
+        )}
+      </div>
+      <footer>
+        {selection === null
+          ? '选择框选工具来标记下一次编辑范围'
+          : `选区 x=${selection.x}, y=${selection.y}, w=${selection.w}, h=${selection.h}`}
+      </footer>
+    </section>
+  )
 }

@@ -125,8 +125,18 @@ edit_image({
   selection: { type: 'all' },
   ops: [
     { op: 'fill', color: '#1d4ed8', opacity: 1, blendMode: 'source-over' },
-    { op: 'brush', points: [{ x: 10, y: 20 }, { x: 45, y: 60 }], radius: 8, color: '#fff', opacity: 0.8, hardness: 0.9 },
-    { op: 'inpaint', prompt: '将选区中的天空变为黄昏', strength: 0.65 }
+    {
+      op: 'brush',
+      points: [
+        { x: 10, y: 20 },
+        { x: 45, y: 60 },
+      ],
+      radius: 8,
+      color: '#fff',
+      opacity: 0.8,
+      hardness: 0.9,
+    },
+    { op: 'inpaint', prompt: '将选区中的天空变为黄昏', strength: 0.65 },
   ],
 })
 ```

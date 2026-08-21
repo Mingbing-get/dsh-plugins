@@ -26,10 +26,15 @@ function gameOf(wait: GomokuWait): SerializableGame | null {
 
 function resultOf(block: ToolCallBlock): ToolValue | null {
   if (!('kind' in block)) return null
-  const text = block.content.filter(item => item.type === 'text').map(item => item.text).join('')
+  const text = block.content
+    .filter((item) => item.type === 'text')
+    .map((item) => item.text)
+    .join('')
   try {
     const parsed = JSON.parse(text) as ToolValue
-    return typeof parsed === 'object' && parsed !== null && parsed.game !== undefined ? parsed : null
+    return typeof parsed === 'object' && parsed !== null && parsed.game !== undefined
+      ? parsed
+      : null
   } catch {
     return null
   }
@@ -43,25 +48,42 @@ function statusText(block: ToolCallBlock, value: ToolValue | null): string {
   if (!('kind' in block)) return '等待你的落子'
   if (block.isError) return '调用失败'
   switch (value?.status) {
-    case 'user_won': return '你已获胜'
-    case 'model_won': return '模型获胜'
-    case 'draw': return '和棋'
-    case 'cancelled': return '本局已结束'
-    default: return '已记录棋盘'
+    case 'user_won':
+      return '你已获胜'
+    case 'model_won':
+      return '模型获胜'
+    case 'draw':
+      return '和棋'
+    case 'cancelled':
+      return '本局已结束'
+    default:
+      return '已记录棋盘'
   }
 }
 
-export function GomokuToolRow({ callId, toolName, block, useSession, useStore, actions }: GomokuToolRowProps) {
-  const wait = useSession(snapshot => snapshot.pending.find((item): item is GomokuWait =>
-    item.kind === 'question' && item.payload.questions[0]?.header === 'gomoku') ?? null)
-  const pendingGame = useMemo(() => wait === null ? null : gameOf(wait), [wait])
+export function GomokuToolRow({
+  callId,
+  toolName,
+  block,
+  useSession,
+  useStore,
+  actions,
+}: GomokuToolRowProps) {
+  const wait = useSession(
+    (snapshot) =>
+      snapshot.pending.find(
+        (item): item is GomokuWait =>
+          item.kind === 'question' && item.payload.questions[0]?.header === 'gomoku',
+      ) ?? null,
+  )
+  const pendingGame = useMemo(() => (wait === null ? null : gameOf(wait)), [wait])
   const value = useMemo(() => resultOf(block), [block])
-  const game = useStore(state => state.game)
-  const open = useStore(state => state.open)
-  const owner = useStore(state => state.ownerCallId === callId)
-  const awaitingUser = useStore(state => state.awaitingUser)
-  const x = useStore(state => state.x)
-  const y = useStore(state => state.y)
+  const game = useStore((state) => state.game)
+  const open = useStore((state) => state.open)
+  const owner = useStore((state) => state.ownerCallId === callId)
+  const awaitingUser = useStore((state) => state.awaitingUser)
+  const x = useStore((state) => state.x)
+  const y = useStore((state) => state.y)
 
   useEffect(() => {
     if ('kind' in block || wait === null || pendingGame === null) return
@@ -77,9 +99,18 @@ export function GomokuToolRow({ callId, toolName, block, useSession, useStore, a
     <>
       <div className="dsh-gomoku-tool-row">
         <span className="dsh-gomoku-tool-mark" aria-hidden />
-        <span className="dsh-gomoku-tool-title">{toolName === 'gomoku_start' ? '开始五子棋' : '五子棋落子'}</span>
+        <span className="dsh-gomoku-tool-title">
+          {toolName === 'gomoku_start' ? '开始五子棋' : '五子棋落子'}
+        </span>
         <span className="dsh-gomoku-tool-status">{statusText(block, value)}</span>
-        <button className="dsh-gomoku-show" type="button" disabled={game === null} onClick={() => { actions.reveal() }}>
+        <button
+          className="dsh-gomoku-show"
+          type="button"
+          disabled={game === null}
+          onClick={() => {
+            actions.reveal()
+          }}
+        >
           {open ? '棋盘已显示' : '显示棋盘'}
         </button>
       </div>

@@ -5,12 +5,23 @@
   "scripts": {
     "build": "pnpm --recursive run build",
     "test": "pnpm --recursive run test",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm lint && pnpm format:check && pnpm test && pnpm build",
     "pack:check": "pnpm --recursive run pack:check",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm run build && pnpm changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.0"
+    "@changesets/cli": "^2.29.0",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.1",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6",
+    "typescript-eslint": "^8.67.0"
   }
 }

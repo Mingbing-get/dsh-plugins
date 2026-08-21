@@ -12,8 +12,19 @@ export interface GomokuWindowState {
 }
 
 type GomokuWindowActions = {
-  syncPending: (draft: GomokuWindowState, game: SerializableGame, callId: string, requestKey: string) => void
-  syncSettled: (draft: GomokuWindowState, game: SerializableGame, callId: string, terminal: boolean, isStart: boolean) => void
+  syncPending: (
+    draft: GomokuWindowState,
+    game: SerializableGame,
+    callId: string,
+    requestKey: string,
+  ) => void
+  syncSettled: (
+    draft: GomokuWindowState,
+    game: SerializableGame,
+    callId: string,
+    terminal: boolean,
+    isStart: boolean,
+  ) => void
   optimisticMove: (draft: GomokuWindowState, row: number, column: number) => void
   restoreAwaiting: (draft: GomokuWindowState) => void
   reveal: (draft: GomokuWindowState) => void
@@ -23,8 +34,13 @@ type GomokuWindowActions = {
 
 export type GomokuStore = EngineStoreHandle<GomokuWindowState, GomokuWindowActions>
 
-function shouldReplace(current: SerializableGame | null, incoming: SerializableGame, isStart: boolean): boolean {
-  if (current === null || current.id === incoming.id) return current === null || incoming.moves >= current.moves
+function shouldReplace(
+  current: SerializableGame | null,
+  incoming: SerializableGame,
+  isStart: boolean,
+): boolean {
+  if (current === null || current.id === incoming.id)
+    return current === null || incoming.moves >= current.moves
   return isStart
 }
 
