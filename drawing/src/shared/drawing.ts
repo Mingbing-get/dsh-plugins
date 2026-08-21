@@ -103,20 +103,25 @@ export namespace Drawing {
     color: Color
     offset: `${number}%`
   }
-  export interface RectOperation extends Rect {
+  export interface ShapeStyle {
+    /** Fill color. Omit to draw an outline only. */
+    fill?: Color
+    /** Outline color. Omit to draw a filled shape only. */
+    stroke?: Color
+    /** Outline width in pixels. Defaults to 1 when stroke is set. */
+    strokeWidth?: number
+  }
+  export interface RectOperation extends Rect, ShapeStyle {
     op: 'rect'
-    color: Color
     opacity?: number
   }
-  export interface EllipseOperation extends Rect {
+  export interface EllipseOperation extends Rect, ShapeStyle {
     op: 'ellipse'
-    color: Color
     opacity?: number
   }
-  export interface PolygonOperation {
+  export interface PolygonOperation extends ShapeStyle {
     op: 'polygon'
     points: Point[]
-    color: Color
     opacity?: number
   }
   export interface LineOperation {

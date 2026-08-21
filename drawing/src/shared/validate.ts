@@ -87,14 +87,12 @@ export function validateEditOperation(value: unknown): ValidationResult {
       case 'ellipse':
         return (
           !validateRect(value).isError &&
-          isColor(value.color) &&
+          isShapeStyle(value) &&
           isOptionalFiniteNumber(value.opacity)
         )
       case 'polygon':
         return (
-          isPointArray(value.points) &&
-          isColor(value.color) &&
-          isOptionalFiniteNumber(value.opacity)
+          isPointArray(value.points) && isShapeStyle(value) && isOptionalFiniteNumber(value.opacity)
         )
       case 'line':
         return (
@@ -184,6 +182,18 @@ function isPointArray(value: unknown): value is Drawing.Point[] {
 
 function isLine(value: Record<string, unknown>): boolean {
   return [value.x1, value.y1, value.x2, value.y2].every(isFiniteNumber)
+}
+
+function isShapeStyle(value: Record<string, unknown>): boolean {
+  const hasFill = value.fill !== undefined
+  const hasStroke = value.stroke !== undefined
+
+  return (
+    (hasFill || hasStroke) &&
+    (value.fill === undefined || isColor(value.fill)) &&
+    (value.stroke === undefined || isColor(value.stroke)) &&
+    (value.strokeWidth === undefined || (hasStroke && isPositiveInteger(value.strokeWidth)))
+  )
 }
 
 function isGradient(value: Record<string, unknown>): boolean {
