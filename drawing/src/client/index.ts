@@ -1,0 +1,6 @@
+import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import { createDrawingToolRow } from './tool-row.tsx'
+import { createDrawingStore } from './store.ts'
+import { installStyles } from './styles.ts'
+export const inject = ['slots', 'sessions']
+export function apply(ctx: ClientContext): void { const store = createDrawingStore(); const DrawingToolRow = createDrawingToolRow(async (sessionId, attachment) => { const session = (ctx.sessions as unknown as { binding(id: string): { session: { readAttachment(id: string): Promise<any> } } | undefined }).binding(sessionId)?.session; if (session === undefined) throw new Error('drawing session is unavailable'); const result = await session.readAttachment(attachment.attachmentId); if (!result.ok) throw new Error(result.error.message); return URL.createObjectURL(new Blob([Uint8Array.from(result.value.data)], { type: result.value.attachment.mediaType })) }); ctx.effect(installStyles, 'drawing: styles'); ctx.slots.inject('tool.call.toolview', function* () { for (const key of ['create_image', 'query_image', 'edit_image', 'render_image', 'save_image', 'undo_image', 'redo_image']) yield ctx.slots.register({ name: 'tool.call.toolview', key, store }, DrawingToolRow) }) }

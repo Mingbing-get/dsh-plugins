@@ -48,9 +48,33 @@ importers:
       '@deepseek-ai/cordis':
         specifier: link:../../../test/deepseek-harness/vendor/cordis
         version: link:../../../test/deepseek-harness/vendor/cordis
+      '@deepseek-ai/dsh-agent':
+        specifier: link:../../../test/deepseek-harness/packages/core/agent
+        version: link:../../../test/deepseek-harness/packages/core/agent
+      '@deepseek-ai/dsh-attachment':
+        specifier: link:../../../test/deepseek-harness/packages/attachment/attachment
+        version: link:../../../test/deepseek-harness/packages/attachment/attachment
+      '@deepseek-ai/dsh-client-runtime':
+        specifier: link:../../../test/deepseek-harness/packages/client/runtime
+        version: link:../../../test/deepseek-harness/packages/client/runtime
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: link:../../../test/deepseek-harness/packages/client/ui-slots
+        version: link:../../../test/deepseek-harness/packages/client/ui-slots
+      '@deepseek-ai/dsh-client-ui-tool':
+        specifier: link:../../../test/deepseek-harness/packages/client/ui-tool
+        version: link:../../../test/deepseek-harness/packages/client/ui-tool
+      '@deepseek-ai/dsh-llm':
+        specifier: link:../../../test/deepseek-harness/packages/llm/llm
+        version: link:../../../test/deepseek-harness/packages/llm/llm
       '@deepseek-ai/dsh-tools':
         specifier: link:../../../test/deepseek-harness/packages/core/tools
         version: link:../../../test/deepseek-harness/packages/core/tools
+      '@types/react':
+        specifier: ~18.3.1
+        version: 18.3.31
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
       tsdown:
         specifier: ^0.22.14
         version: 0.22.14(typescript@5.9.3)

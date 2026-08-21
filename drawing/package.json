@@ -11,6 +11,7 @@
       "types": "./lib/index.d.ts",
       "default": "./lib/index.js"
     },
+    "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
   "files": [
@@ -32,11 +33,26 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0",
-    "@deepseek-ai/dsh-tools": ">=0.0.1-0"
+    "@deepseek-ai/dsh-attachment": ">=0.0.1-0",
+    "@deepseek-ai/dsh-agent": ">=0.0.1-0",
+    "@deepseek-ai/dsh-client-runtime": ">=0.0.1-0",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.0.1-0",
+    "@deepseek-ai/dsh-client-ui-tool": ">=0.0.1-0",
+    "@deepseek-ai/dsh-tools": ">=0.0.1-0",
+    "@deepseek-ai/dsh-llm": ">=0.0.1-0",
+    "react": "^18.2.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "link:../../../test/deepseek-harness/vendor/cordis",
+    "@deepseek-ai/dsh-attachment": "link:../../../test/deepseek-harness/packages/attachment/attachment",
+    "@deepseek-ai/dsh-agent": "link:../../../test/deepseek-harness/packages/core/agent",
     "@deepseek-ai/dsh-tools": "link:../../../test/deepseek-harness/packages/core/tools",
+    "@deepseek-ai/dsh-llm": "link:../../../test/deepseek-harness/packages/llm/llm",
+    "@deepseek-ai/dsh-client-runtime": "link:../../../test/deepseek-harness/packages/client/runtime",
+    "@deepseek-ai/dsh-client-ui-slots": "link:../../../test/deepseek-harness/packages/client/ui-slots",
+    "@deepseek-ai/dsh-client-ui-tool": "link:../../../test/deepseek-harness/packages/client/ui-tool",
+    "@types/react": "~18.3.1",
+    "react": "^18.3.1",
     "tsdown": "^0.22.14",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
@@ -44,7 +60,8 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
-    }
+    },
+    "client": { "platform": "web", "inject": ["@deepseek-ai/dsh-client-runtime", "@deepseek-ai/dsh-client-ui-slots", "@deepseek-ai/dsh-client-ui-tool"] }
   },
   "license": "MIT",
   "packageManager": "pnpm@11.22.0"
