@@ -1,6 +1,6 @@
 import type { UserConfig } from 'tsdown'
 
-const ID = 'dsh-gomoku-plugin'
+const ID = '@meing/dsh-gomoku-plugin'
 const CLIENT_EXTERNALS = [
   'react', 'react/jsx-runtime', 'react-dom', 'react-dom/client',
   '@deepseek-ai/cordis', '@deepseek-ai/dsh-client-ui-slots',
