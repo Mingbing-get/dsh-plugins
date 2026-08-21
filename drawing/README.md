@@ -2,7 +2,7 @@
 
 DeepSeek Harness 的 AI 单图编辑插件。当前已实现会话级 raster 文档内核与受限 Host 工具：`create_image`、`query_image`、`edit_image`、`undo_image`、`redo_image`。
 
-内核使用固定尺寸 RGBA 位图，而非无限画布。基础编辑支持填充、清除、矩形、椭圆、多边形、线条、画笔、受选区限制的 flood fill、改色、裁切、缩放与翻转；每次编辑是带版本校验的原子事务，失败会完整回滚，撤销/重做共享同一历史。`render_image` 与 `save_image` 使用 Harness 的受控 PNG attachment，不暴露原始像素、Base64 或文件路径。
+内核使用固定尺寸 RGBA 位图，而非无限画布。基础编辑支持填充、清除、矩形、椭圆、多边形、线条、画笔、受选区限制的 flood fill、改色、裁切、缩放与翻转；每次编辑是带版本校验的原子事务，失败会完整回滚，撤销/重做共享同一历史。浏览器会根据成功工具调用的参数，以 Canvas 回放并自动刷新画面；工具结果只返回成功状态，不传输 PNG 或图片 attachment。`render_image` 已移除，窗口的“保存 PNG”直接下载本地 Canvas 预览。
 
 完整需求、边界和验收标准见 [PRD.md](./PRD.md)。下一阶段会接入 Web 浮窗、框选上下文、PNG 渲染/下载以及 AI inpaint/outpaint bridge。
 

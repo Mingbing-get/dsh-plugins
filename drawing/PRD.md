@@ -58,7 +58,7 @@ imageId=image:main, version=17, size=1536x1024
 
 ### 4.3 工具记录与恢复显示
 
-`create_image`、`edit_image`、`render_image` 和 `save_image` 的工具行右侧均显示“显示画面”。没有文档时按钮禁用；窗口显示时按钮显示“画面已显示”。点击按钮恢复当前会话最后一张图、当前缩放与最近选区，且不触发模型调用。工具行和弹窗遵循 `gomoku` 的无蒙层、可拖动、可恢复模式，但不需要等待用户作答。
+`create_image`、`edit_image` 和 `save_image` 的工具行右侧均显示“显示画面”。没有文档时按钮禁用；窗口显示时按钮显示“画面已显示”。点击按钮恢复当前会话最后一张图、当前缩放与最近选区，且不触发模型调用。PNG attachment 只存放在客户端展示元数据中，绝不作为模型内容发送。工具行和弹窗遵循 `gomoku` 的无蒙层、可拖动、可恢复模式，但不需要等待用户作答。
 
 ### 4.4 保存
 
@@ -98,7 +98,7 @@ query_image({
 })
 ```
 
-返回 `imageId`、`version`、尺寸、当前选区、透明度统计、请求区域和裁剪提示。模型需要视觉判断时应调用 `render_image`，而非根据坐标猜测画面。
+返回 `imageId`、`version`、尺寸、当前选区、透明度统计、请求区域和裁剪提示。模型不能读取画面像素；需要进一步编辑时根据用户指令和结构化状态操作。
 
 ### 6.2 `create_image`
 
@@ -113,7 +113,7 @@ create_image({
 })
 ```
 
-成功后自动显示窗口并返回初始版本、尺寸和文档 ID。
+成功后自动显示窗口；模型结果只返回成功状态，初始版本、尺寸和文档 ID 需通过 `query_image` 获取。
 
 ### 6.3 `edit_image`
 
@@ -148,21 +148,7 @@ edit_image({
 
 除 `crop`、`resize` 与 `outpaint` 外，所有操作默认限制在 `selection` 内；AI 操作获得结果后也只将 mask 覆盖范围合成回原图。模型不可提交 Base64、URL、文件路径、表达式、Canvas 代码或任意 blend/filter 名称；样式、混合模式和滤镜均为白名单 token。
 
-### 6.4 `render_image`
-
-返回当前整图或指定区域的 PNG，供模型进行视觉核验。
-
-```ts
-render_image({
-  expectedVersion?: number,
-  bounds?: { x: number, y: number, w: number, h: number },
-  scale?: number,
-})
-```
-
-工具限制输出像素面积，并返回实际渲染边界和版本。大图默认返回适合观察的缩略图；模型需观察细节时指定区域，而不是无限提高 scale。
-
-### 6.5 `save_image`
+### 6.4 `save_image`
 
 仅在用户明确要求下载/保存图片时调用。
 
@@ -214,10 +200,10 @@ redo_image({ expectedVersion: 19 })
 ## 9. 模型行为规范
 
 1. 创建前先检查是否已有图像；替换必须得到用户明确授权。
-2. 编辑前调用 `query_image`；涉及视觉位置、颜色或细节时调用 `render_image`。
+2. 编辑前调用 `query_image` 获取当前版本；工具不会向模型返回图片。
 3. 用户已框选区域且说“这里”“选中部分”时，优先 `selection: { type: 'current' }`，不得扩大范围。
 4. 仅在用户明确说“整张图”“全图”时用 `selection: { type: 'all' }`。
-5. 多操作作为一个小批次原子提交；复杂 AI 重绘后调用 `render_image`，最多执行一次针对性修复。
+5. 多操作作为一个小批次原子提交；完成后客户端自动刷新画面。
 6. 保存仅响应用户明确的“保存”“下载”“导出”意图。
 
 ## 10. 验收标准
@@ -236,6 +222,6 @@ redo_image({ expectedVersion: 19 })
 1. 建立 `ImageDocument`、tile、版本和历史模型，替换现有 tldraw 相关描述。
 2. 实现 Canvas/OffscreenCanvas bridge、可移动绘图窗口、实时预览和工具行“显示画面”。
 3. 实现框选、缩放平移及下一条用户消息的选区上下文注入。
-4. 实现 `query_image`、`create_image`、基础 `edit_image`、`render_image` 与事务测试。
+4. 实现 `query_image`、`create_image`、基础 `edit_image` 与事务测试。
 5. 接入 AI 生成、选区 inpaint/outpaint、取消与进度事件。
 6. 实现共享撤销/重做、PNG 保存、视觉回归、协议测试和文档。
