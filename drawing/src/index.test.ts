@@ -97,10 +97,55 @@ describe('drawing server tools', () => {
     const pending = registered.get('query_image')!.execute({ scope: 'summary' }, exec)
     await handler!(
       'image-metadata',
-      { sessionId: 'drawing-session', callId: 'drawing-query-image', result },
+      {
+        sessionId: 'drawing-session',
+        callId: 'drawing-query-image',
+        result: { ok: true, value: result },
+      },
       controller.signal,
     )
     await expect(pending).resolves.toEqual(result)
+  })
+
+  it('rejects a query when the drawing client cannot calculate image metadata', async () => {
+    const registered = new Map<string, ToolDefinition>()
+    let handler:
+      ((endpoint: string, payload: unknown, signal: AbortSignal) => Promise<unknown>) | undefined
+    const ctx = {
+      connection: {
+        rpc: {
+          handle(_channel: string, next: typeof handler) {
+            handler = next
+            return async () => {}
+          },
+        },
+      },
+      tools: {
+        register(tool: ToolDefinition) {
+          registered.set(tool.name, tool)
+          return () => {}
+        },
+      },
+      systemPrompt: { context: () => () => {} },
+    } as unknown as Context
+    apply(ctx)
+
+    const controller = new AbortController()
+    const pending = registered.get('query_image')!.execute({ scope: 'summary' }, {
+      callId: 'drawing-query-image-error',
+      agent: { id: 'drawing-session' },
+      signal: controller.signal,
+    } as ToolRunContext)
+    await handler!(
+      'image-metadata',
+      {
+        sessionId: 'drawing-session',
+        callId: 'drawing-query-image-error',
+        result: { ok: false, error: 'no drawing image exists in this session' },
+      },
+      controller.signal,
+    )
+    await expect(pending).rejects.toThrow('no drawing image exists in this session')
   })
 
   it('returns validation failures as tool argument errors', async () => {
