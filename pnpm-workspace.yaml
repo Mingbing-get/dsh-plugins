@@ -1,3 +1,12 @@
 packages:
   - gomoku
   - codegraph
+
+# The lockfile pins the complete dependency graph. Do not reject a valid locked
+# dependency merely because a platform-specific optional package is newly released.
+minimumReleaseAge: 0
+
+# tsdown and Vitest rely on esbuild's platform binary, installed by its
+# package-local build script.
+allowBuilds:
+  esbuild: true

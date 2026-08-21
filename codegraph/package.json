@@ -16,5 +16,5 @@
   "devDependencies": { "@deepseek-ai/cordis": "link:../../../test/deepseek-harness/vendor/cordis", "@deepseek-ai/dsh-agent": "link:../../../test/deepseek-harness/packages/core/agent", "@deepseek-ai/dsh-llm": "link:../../../test/deepseek-harness/packages/llm/llm", "@deepseek-ai/dsh-tools": "link:../../../test/deepseek-harness/packages/core/tools", "@types/node": "^24.0.0", "tsdown": "^0.22.14", "typescript": "^5.9.2", "vitest": "^3.2.4" },
   "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
   "license": "MIT",
-  "packageManager": "pnpm@10.15.1"
+  "packageManager": "pnpm@11.22.0"
 }
