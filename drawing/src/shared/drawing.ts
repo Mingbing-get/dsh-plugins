@@ -50,6 +50,7 @@ export namespace Drawing {
   export interface ImageResult extends ImageInfo {
     bounds: Rect
     alpha: AlphaStats
+    clipped: boolean
   }
   export interface AlphaStats {
     opaque: number

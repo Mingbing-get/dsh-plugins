@@ -90,6 +90,9 @@ importers:
       '@deepseek-ai/dsh-tools':
         specifier: link:../../../test/deepseek-harness/packages/core/tools
         version: link:../../../test/deepseek-harness/packages/core/tools
+      '@deepseek-ai/dsh-user-questions':
+        specifier: link:../../../test/deepseek-harness/packages/interaction/user-questions
+        version: link:../../../test/deepseek-harness/packages/interaction/user-questions
       '@types/react':
         specifier: ~18.3.1
         version: 18.3.31

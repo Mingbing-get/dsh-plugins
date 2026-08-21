@@ -15,6 +15,14 @@ interface EditBatch {
   selection: unknown
 }
 
+export interface DrawingImageQuery {
+  scope: Drawing.QueryImageArguments['scope']
+  bounds?: Drawing.Rect
+}
+
+export type DrawingImageQueryResponse =
+  { ok: true; value: Drawing.ImageResult } | { ok: false; error: string }
+
 function parseArgs(raw: string): Record<string, unknown> | null {
   try {
     const value: unknown = JSON.parse(raw)
@@ -313,4 +321,77 @@ export function replayDrawing(
   canvas.height = document.canvas.height
   canvas.getContext('2d')!.drawImage(document.canvas, 0, 0)
   return { width: canvas.width, height: canvas.height }
+}
+
+function clippedBounds(bounds: Drawing.Rect, width: number, height: number): Drawing.Rect {
+  const left = Math.max(0, Math.min(width, bounds.x))
+  const top = Math.max(0, Math.min(height, bounds.y))
+  const right = Math.max(left, Math.min(width, bounds.x + bounds.w))
+  const bottom = Math.max(top, Math.min(height, bounds.y + bounds.h))
+  return { x: left, y: top, w: right - left, h: bottom - top }
+}
+
+function alphaStats(context: Context, bounds: Drawing.Rect): Drawing.AlphaStats {
+  const data = context.getImageData(bounds.x, bounds.y, bounds.w, bounds.h).data
+  let opaque = 0
+  let transparent = 0
+  let partial = 0
+  for (let index = 3; index < data.length; index += 4) {
+    if (data[index] === 0) transparent++
+    else if (data[index] === 255) opaque++
+    else partial++
+  }
+  return { opaque, transparent, partial }
+}
+
+function versionOf(calls: readonly DrawingCall[]): number {
+  let version = 0
+  for (const call of calls) {
+    if (call.name === 'create_image') version = 1
+    else if (
+      call.name === 'edit_image' ||
+      call.name === 'undo_image' ||
+      call.name === 'redo_image'
+    ) {
+      version++
+    }
+  }
+  return version
+}
+
+/** Read model-safe metadata from the same replayed Canvas used for the preview. */
+export function queryDrawing(
+  canvas: Canvas,
+  calls: readonly DrawingCall[],
+  query: DrawingImageQuery,
+): DrawingImageQueryResponse {
+  const size = replayDrawing(canvas, calls)
+  if (size === null) return { ok: false, error: 'no drawing image exists in this session' }
+
+  const selection = null
+  if (query.scope === 'selection') {
+    return { ok: false, error: 'no active drawing selection exists' }
+  }
+
+  const requested =
+    query.scope === 'region' ? query.bounds! : { x: 0, y: 0, w: size.width, h: size.height }
+  const bounds = clippedBounds(requested, size.width, size.height)
+  const clipped =
+    bounds.x !== requested.x ||
+    bounds.y !== requested.y ||
+    bounds.w !== requested.w ||
+    bounds.h !== requested.h
+  return {
+    ok: true,
+    value: {
+      imageId: 'image:main',
+      version: versionOf(calls),
+      width: size.width,
+      height: size.height,
+      selection,
+      bounds,
+      alpha: alphaStats(canvas.getContext('2d')!, bounds),
+      clipped,
+    },
+  }
 }

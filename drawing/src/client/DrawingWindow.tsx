@@ -38,7 +38,7 @@ function collectCalls(block: ToolCallBlock, calls: Map<string, DrawingCall>): vo
   for (const child of block.subCalls) collectCalls(child, calls)
 }
 
-function drawingCalls(snapshot: ConversationSnapshot): DrawingCall[] {
+export function drawingCalls(snapshot: ConversationSnapshot): DrawingCall[] {
   const indexed = new Map<string, DrawingCall>()
   for (const node of snapshot.nodes) if (node.kind === 'tool-result') collectCalls(node, indexed)
   for (const running of snapshot.runningCalls) collectCalls(running, indexed)

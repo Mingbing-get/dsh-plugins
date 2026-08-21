@@ -41,6 +41,7 @@
     "@deepseek-ai/dsh-tools": ">=0.0.1-0",
     "@deepseek-ai/dsh-llm": ">=0.0.1-0",
     "@deepseek-ai/dsh-system-prompt": ">=0.0.1-0",
+    "@deepseek-ai/dsh-user-questions": ">=0.0.1-0",
     "react": "^18.2.0"
   },
   "devDependencies": {
@@ -50,6 +51,7 @@
     "@deepseek-ai/dsh-tools": "link:../../../test/deepseek-harness/packages/core/tools",
     "@deepseek-ai/dsh-llm": "link:../../../test/deepseek-harness/packages/llm/llm",
     "@deepseek-ai/dsh-system-prompt": "link:../../../test/deepseek-harness/packages/core/system-prompt",
+    "@deepseek-ai/dsh-user-questions": "link:../../../test/deepseek-harness/packages/interaction/user-questions",
     "@deepseek-ai/dsh-client-runtime": "link:../../../test/deepseek-harness/packages/client/runtime",
     "@deepseek-ai/dsh-client-ui-slots": "link:../../../test/deepseek-harness/packages/client/ui-slots",
     "@deepseek-ai/dsh-client-ui-tool": "link:../../../test/deepseek-harness/packages/client/ui-tool",
