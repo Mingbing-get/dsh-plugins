@@ -1,16 +1,11 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-system-prompt'
-import { defineTool, ToolArgsError } from '@deepseek-ai/dsh-tools'
-import type { AskUserQuestionAnswer } from '@deepseek-ai/dsh-user-questions'
 import type {} from '@deepseek-ai/dsh-user-questions'
-import {
-  validateCreateImageArguments,
-  validateEditImageArguments,
-  validateQueryImageArguments,
-  validateVersionedImageArguments,
-  type ValidationResult,
-} from './shared/index.ts'
-import type { Drawing } from './shared/index.ts'
+import { createImageTool } from './tools/create-image.ts'
+import { editImageTool } from './tools/edit-image.ts'
+import { createQueryImageTool } from './tools/query-image.ts'
+import { redoImageTool } from './tools/redo-image.ts'
+import { undoImageTool } from './tools/undo-image.ts'
 
 export const name = 'drawing'
 export const inject = ['tools', 'systemPrompt', 'userQuestions']
@@ -88,246 +83,15 @@ Fill the user-selected region with a two-stop gradient:
 4. This plugin currently validates requests but does not render an image itself. Treat the protocol as a declared contract and do not claim visual output unless a rendering host reports it.
 `
 
-const output = {
-  schema: {
-    type: 'object',
-    additionalProperties: false,
-    properties: {
-      ok: { type: 'boolean', required: true },
-    },
-  },
-  render: (_args: unknown, value: { ok: boolean }) => [
-    { type: 'text' as const, text: JSON.stringify(value) },
-  ],
-} as const
-
-const queryOutput = {
-  schema: {
-    type: 'object',
-    additionalProperties: false,
-    properties: {
-      imageId: { type: 'string', required: true },
-      version: { type: 'integer', required: true },
-      width: { type: 'integer', required: true },
-      height: { type: 'integer', required: true },
-      selection: {
-        required: true,
-        oneOf: [
-          {
-            type: 'object',
-            additionalProperties: false,
-            properties: {
-              type: { type: 'string', required: true, enum: ['rect'] },
-              x: { type: 'number', required: true },
-              y: { type: 'number', required: true },
-              w: { type: 'number', required: true },
-              h: { type: 'number', required: true },
-            },
-          },
-          { type: 'null' },
-        ],
-      },
-      bounds: {
-        type: 'object',
-        required: true,
-        additionalProperties: false,
-        properties: {
-          x: { type: 'number', required: true },
-          y: { type: 'number', required: true },
-          w: { type: 'number', required: true },
-          h: { type: 'number', required: true },
-        },
-      },
-      alpha: {
-        type: 'object',
-        required: true,
-        additionalProperties: false,
-        properties: {
-          opaque: { type: 'integer', required: true },
-          transparent: { type: 'integer', required: true },
-          partial: { type: 'integer', required: true },
-        },
-      },
-      clipped: { type: 'boolean', required: true },
-    },
-  },
-  render: (_args: unknown, value: unknown) => [
-    { type: 'text' as const, text: JSON.stringify(value) },
-  ],
-} as const
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isNonNegativeInteger(value: unknown): value is number {
-  return Number.isInteger(value) && (value as number) >= 0
-}
-
-function isPositiveInteger(value: unknown): value is number {
-  return Number.isInteger(value) && (value as number) > 0
-}
-
-function isRect(value: unknown): value is Drawing.Rect {
-  return (
-    isRecord(value) &&
-    [value.x, value.y, value.w, value.h].every(
-      (part) => typeof part === 'number' && Number.isFinite(part),
-    )
-  )
-}
-
-function isQueryResult(value: unknown): value is Drawing.ImageResult {
-  if (!isRecord(value) || typeof value.imageId !== 'string') return false
-  if (!isNonNegativeInteger(value.version)) return false
-  if (!isPositiveInteger(value.width) || !isPositiveInteger(value.height)) return false
-  if (
-    value.selection !== null &&
-    !(isRecord(value.selection) && value.selection.type === 'rect' && isRect(value.selection))
-  ) {
-    return false
-  }
-  if (!isRect(value.bounds) || typeof value.clipped !== 'boolean' || !isRecord(value.alpha))
-    return false
-  return [value.alpha.opaque, value.alpha.transparent, value.alpha.partial].every(
-    isNonNegativeInteger,
-  )
-}
-
-function queryResult(answer: AskUserQuestionAnswer): Drawing.ImageResult {
-  const raw = answer.answers.find((item) => item.id === 'drawing-query-image')?.custom
-  if (raw === undefined) throw new Error('the drawing client returned no image result')
-  let response: unknown
-  try {
-    response = JSON.parse(raw)
-  } catch {
-    throw new Error('the drawing client returned malformed image metadata')
-  }
-  if (!isRecord(response)) throw new Error('the drawing client returned invalid image metadata')
-  if (response.ok === false && typeof response.error === 'string') throw new Error(response.error)
-  if (response.ok !== true || !isQueryResult(response.value)) {
-    throw new Error('the drawing client returned invalid image metadata')
-  }
-  return response.value
-}
-
-function completeAfterValidation(result: ValidationResult): { ok: true } {
-  if (result.isError) throw new ToolArgsError([result.msg])
-  return { ok: true }
-}
-
 export function apply(ctx: Context): void {
   ctx.systemPrompt.context({
     name: 'drawing:edit-image-ops',
     order: 100,
     text: EDIT_IMAGE_OPS_CONTEXT,
   })
-
-  ctx.tools.register(
-    defineTool({
-      name: 'create_image',
-      description:
-        'Create a new drawing image. This server validates the request but does not render it.',
-      parameters: {
-        width: { type: 'integer', required: true, description: 'Image width in pixels.' },
-        height: { type: 'integer', required: true, description: 'Image height in pixels.' },
-        background: { type: 'string', description: 'transparent or a #RRGGBB/#RRGGBBAA color.' },
-        replace: { type: 'boolean', description: 'Whether an existing image may be replaced.' },
-      },
-      output,
-      async execute(args) {
-        return completeAfterValidation(validateCreateImageArguments(args))
-      },
-      presentCall: (args) => ({
-        card: 'generic',
-        title: '创建图片',
-        kind: 'other',
-        rawInput: args,
-      }),
-    }),
-  )
-
-  ctx.tools.register(
-    defineTool({
-      name: 'query_image',
-      description:
-        'Query drawing image metadata from the current client-side drawing document. It never returns raw pixels.',
-      parameters: {
-        scope: { type: 'string', required: true, enum: ['summary', 'selection', 'region'] },
-        bounds: {
-          type: 'object',
-          additionalProperties: true,
-          description: 'Required for region scope: { x, y, w, h }.',
-        },
-      },
-      output: queryOutput,
-      async execute(args, exec) {
-        completeAfterValidation(validateQueryImageArguments(args))
-        const answer = await ctx.userQuestions.ask({
-          questions: [
-            {
-              id: 'drawing-query-image',
-              header: 'drawing:query-image',
-              question: '读取当前绘图文档的结构化信息。',
-              detail: JSON.stringify(args),
-            },
-          ],
-          ...(exec.agent === undefined ? {} : { agent: exec.agent }),
-          signal: exec.signal,
-        })
-        return queryResult(answer)
-      },
-      presentCall: (args) => ({
-        card: 'generic',
-        title: '查询图片',
-        kind: 'other',
-        rawInput: args,
-      }),
-    }),
-  )
-
-  ctx.tools.register(
-    defineTool({
-      name: 'edit_image',
-      description:
-        'Apply drawing operations. This server validates the request but does not render it.',
-      parameters: {
-        expectedVersion: { type: 'integer', required: true },
-        selection: { type: 'object', additionalProperties: true, required: true },
-        ops: {
-          type: 'array',
-          items: { type: 'object', additionalProperties: true },
-          required: true,
-        },
-      },
-      output,
-      async execute(args) {
-        return completeAfterValidation(validateEditImageArguments(args))
-      },
-      presentCall: (args) => ({
-        card: 'generic',
-        title: '编辑图片',
-        kind: 'other',
-        rawInput: args,
-      }),
-    }),
-  )
-
-  for (const [toolName, title] of [
-    ['undo_image', '撤销图片编辑'],
-    ['redo_image', '重做图片编辑'],
-  ] as const) {
-    ctx.tools.register(
-      defineTool({
-        name: toolName,
-        description: `${title}。This server validates the request but does not modify an image.`,
-        parameters: { expectedVersion: { type: 'integer', required: true } },
-        output,
-        async execute(args) {
-          return completeAfterValidation(validateVersionedImageArguments(args))
-        },
-        presentCall: (args) => ({ card: 'generic', title, kind: 'other', rawInput: args }),
-      }),
-    )
-  }
+  ctx.tools.register(createImageTool)
+  ctx.tools.register(createQueryImageTool(ctx))
+  ctx.tools.register(editImageTool)
+  ctx.tools.register(undoImageTool)
+  ctx.tools.register(redoImageTool)
 }
