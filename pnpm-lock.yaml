@@ -84,6 +84,9 @@ importers:
       '@deepseek-ai/dsh-llm':
         specifier: link:../../../test/deepseek-harness/packages/llm/llm
         version: link:../../../test/deepseek-harness/packages/llm/llm
+      '@deepseek-ai/dsh-system-prompt':
+        specifier: link:../../../test/deepseek-harness/packages/core/system-prompt
+        version: link:../../../test/deepseek-harness/packages/core/system-prompt
       '@deepseek-ai/dsh-tools':
         specifier: link:../../../test/deepseek-harness/packages/core/tools
         version: link:../../../test/deepseek-harness/packages/core/tools

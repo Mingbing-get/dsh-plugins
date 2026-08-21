@@ -7,10 +7,17 @@ import { apply } from './index.ts'
 describe('drawing server tools', () => {
   it('registers validation-only tools and treats valid calls as successful', async () => {
     const registered = new Map<string, ToolDefinition>()
+    const contexts: { name: string; order: number; text: string }[] = []
     const ctx = {
       tools: {
         register(tool: ToolDefinition) {
           registered.set(tool.name, tool)
+          return () => {}
+        },
+      },
+      systemPrompt: {
+        context(context: { name: string; order: number; text: string }) {
+          contexts.push(context)
           return () => {}
         },
       },
@@ -24,6 +31,15 @@ describe('drawing server tools', () => {
       'undo_image',
       'redo_image',
     ])
+    expect(contexts).toEqual([
+      expect.objectContaining({
+        name: 'drawing:edit-image-ops',
+        order: 100,
+        text: expect.stringContaining('# edit_image operation manual'),
+      }),
+    ])
+    expect(contexts[0]!.text).toContain('## Examples')
+    expect(contexts[0]!.text).toContain('{ op: "brush", points, color, radius?, opacity? }')
 
     const exec = { signal: new AbortController().signal } as ToolRunContext
     await expect(
@@ -44,6 +60,11 @@ describe('drawing server tools', () => {
       tools: {
         register(tool: ToolDefinition) {
           registered.set(tool.name, tool)
+          return () => {}
+        },
+      },
+      systemPrompt: {
+        context() {
           return () => {}
         },
       },
