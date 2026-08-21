@@ -1,5 +1,5 @@
 {
-  "name": "dsh-gomoku-plugin",
+  "name": "@meing/dsh-gomoku-plugin",
   "version": "0.3.0",
   "description": "A waiting, interactive Gomoku tool for DeepSeek Harness",
   "type": "module",
@@ -15,8 +15,11 @@
     "build": "node scripts/clean.mjs && tsc --noEmit && tsdown",
     "prepack": "pnpm build",
     "test": "vitest run",
-    "pack:check": "npm pack --dry-run",
-    "release": "node scripts/release.mjs"
+    "pack:check": "npm_config_cache=/private/tmp/dsh-gomoku-npm-cache npm pack --dry-run",
+    "release:github": "node scripts/release.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0",

@@ -3,3 +3,4 @@ lib/
 .pnpm-store
 .codegraph
 dist
+.env

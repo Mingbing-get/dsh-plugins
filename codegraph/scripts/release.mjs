@@ -7,9 +7,10 @@ const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const packageJson = JSON.parse(readFileSync(resolve(pluginRoot, 'package.json'), 'utf8'))
 const { name, version } = packageJson
 const tag = `codegraph-v${version}`
-const archive = resolve(pluginRoot, 'dist', `${name}-${version}.tgz`)
+const archiveName = `${name.replace(/^@/, '').replace('/', '-')}-${version}.tgz`
+const archive = resolve(pluginRoot, 'dist', archiveName)
 const repositoryRoot = resolve(pluginRoot, '..')
-const releaseUrl = `https://github.com/Mingbing-get/dsh-plugins/releases/download/${tag}/${name}-${version}.tgz`
+const releaseUrl = `https://github.com/Mingbing-get/dsh-plugins/releases/download/${tag}/${archiveName}`
 
 function run(command, args, options = {}) {
   return execFileSync(command, args, {

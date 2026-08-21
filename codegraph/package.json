@@ -1,5 +1,5 @@
 {
-  "name": "dsh-codegraph-plugin",
+  "name": "@meing/dsh-codegraph-plugin",
   "version": "0.1.0",
   "description": "Workspace-scoped CodeGraph integration for DeepSeek Harness",
   "type": "module",
@@ -7,7 +7,10 @@
   "types": "./lib/index.d.ts",
   "exports": { ".": { "types": "./lib/index.d.ts", "default": "./lib/index.js" }, "./package.json": "./package.json" },
   "files": ["lib", "cordis.patch.yml", "README.md", "LICENSE"],
-  "scripts": { "build": "node scripts/clean.mjs && tsc --noEmit && tsdown", "test": "vitest run", "pack:check": "npm pack --dry-run", "pack": "pnpm build && mkdir -p dist && npm_config_cache=/private/tmp/dsh-codegraph-npm-cache npm pack --pack-destination dist", "release": "node scripts/release.mjs" },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": { "build": "node scripts/clean.mjs && tsc --noEmit && tsdown", "prepack": "pnpm build", "test": "vitest run", "pack:check": "npm_config_cache=/private/tmp/dsh-codegraph-npm-cache npm pack --dry-run", "pack": "pnpm build && mkdir -p dist && npm_config_cache=/private/tmp/dsh-codegraph-npm-cache npm pack --pack-destination dist", "release:github": "node scripts/release.mjs" },
   "dependencies": { "@colbymchenry/codegraph": "1.5.0" },
   "peerDependencies": { "@deepseek-ai/cordis": ">=4.0.0", "@deepseek-ai/dsh-agent": ">=0.0.1-0", "@deepseek-ai/dsh-llm": ">=0.0.1-0", "@deepseek-ai/dsh-tools": ">=0.0.1-0" },
   "devDependencies": { "@deepseek-ai/cordis": "link:../../../test/deepseek-harness/vendor/cordis", "@deepseek-ai/dsh-agent": "link:../../../test/deepseek-harness/packages/core/agent", "@deepseek-ai/dsh-llm": "link:../../../test/deepseek-harness/packages/llm/llm", "@deepseek-ai/dsh-tools": "link:../../../test/deepseek-harness/packages/core/tools", "@types/node": "^24.0.0", "tsdown": "^0.22.14", "typescript": "^5.9.2", "vitest": "^3.2.4" },
