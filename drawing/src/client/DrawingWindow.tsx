@@ -229,9 +229,12 @@ export function DrawingWindow({ useSession, inputActions, draft, onClose }: Draw
             className="dsh-drawing-download"
             type="button"
             aria-label="下载图片"
+            title="下载图片"
             onClick={downloadDrawing}
           >
-            下载
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3" />
+            </svg>
           </button>
           <button
             className="dsh-drawing-close"
