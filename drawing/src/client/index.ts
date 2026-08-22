@@ -1,5 +1,6 @@
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-connection/client'
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { DrawingToolRow, setDrawingConnection } from './DrawingToolRow.tsx'
 import { createDrawingStore } from './store.ts'
 import { installStyles } from './styles.ts'

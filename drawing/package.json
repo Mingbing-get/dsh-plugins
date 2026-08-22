@@ -37,6 +37,7 @@
     "@deepseek-ai/dsh-agent": ">=0.0.1-0",
     "@deepseek-ai/dsh-client-connection": ">=0.0.1-0",
     "@deepseek-ai/dsh-client-runtime": ">=0.0.1-0",
+    "@deepseek-ai/dsh-client-ui-conversation": ">=0.0.1-0",
     "@deepseek-ai/dsh-client-ui-slots": ">=0.0.1-0",
     "@deepseek-ai/dsh-client-ui-tool": ">=0.0.1-0",
     "@deepseek-ai/dsh-tools": ">=0.0.1-0",
@@ -53,6 +54,7 @@
     "@deepseek-ai/dsh-llm": "link:../../../test/deepseek-harness/packages/llm/llm",
     "@deepseek-ai/dsh-system-prompt": "link:../../../test/deepseek-harness/packages/core/system-prompt",
     "@deepseek-ai/dsh-client-runtime": "link:../../../test/deepseek-harness/packages/client/runtime",
+    "@deepseek-ai/dsh-client-ui-conversation": "link:../../../test/deepseek-harness/packages/client/ui-conversation",
     "@deepseek-ai/dsh-client-ui-slots": "link:../../../test/deepseek-harness/packages/client/ui-slots",
     "@deepseek-ai/dsh-client-ui-tool": "link:../../../test/deepseek-harness/packages/client/ui-tool",
     "@types/react": "~18.3.1",
@@ -69,6 +71,7 @@
       "platform": "web",
       "inject": [
         "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-conversation",
         "@deepseek-ai/dsh-client-ui-slots",
         "@deepseek-ai/dsh-client-ui-tool"
       ]

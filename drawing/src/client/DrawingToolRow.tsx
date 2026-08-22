@@ -29,7 +29,9 @@ export function DrawingToolRow({
   toolName,
   block,
   useSession,
+  useInput,
   sessionId,
+  inputActions,
   useStore,
   actions,
 }: DrawingToolRowProps) {
@@ -38,6 +40,7 @@ export function DrawingToolRow({
   const open = useStore((state) => state.open)
   const owner = useStore((state) => state.ownerCallId === callId)
   const calls = useSession(drawingCalls)
+  const draft = useInput((state) => state.draft)
 
   useEffect(() => {
     actions.syncCall({
@@ -81,7 +84,12 @@ export function DrawingToolRow({
         </button>
       </div>
       {owner && open && hasImage && (
-        <DrawingWindow useSession={useSession} onClose={() => actions.close()} />
+        <DrawingWindow
+          useSession={useSession}
+          inputActions={inputActions}
+          draft={draft}
+          onClose={() => actions.close()}
+        />
       )}
     </>
   )
