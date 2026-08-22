@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { CSSProperties, PointerEvent } from 'react'
 import type { ConversationSnapshot, ToolCallBlock } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
 import { replayDrawing } from './replay.ts'
@@ -58,22 +59,60 @@ export function DrawingWindow({ useSession, onClose }: DrawingWindowProps) {
     return nextCalls
   })
   const canvas = useRef<HTMLCanvasElement>(null)
+  const dragOrigin = useRef<{ x: number; y: number; pointerX: number; pointerY: number } | null>(
+    null,
+  )
   const [size, setSize] = useState<{ width: number; height: number } | null>(null)
+  const [position, setPosition] = useState({ x: 0, y: 0 })
   useEffect(() => {
     if (canvas.current === null) return
     setSize(replayDrawing(canvas.current, calls))
   }, [calls])
 
+  const handlePointerDown = (event: PointerEvent<HTMLElement>) => {
+    if (event.button !== 0 || event.target instanceof HTMLButtonElement) return
+    dragOrigin.current = {
+      x: position.x,
+      y: position.y,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const handlePointerMove = (event: PointerEvent<HTMLElement>) => {
+    const origin = dragOrigin.current
+    if (origin === null) return
+    setPosition({
+      x: origin.x + event.clientX - origin.pointerX,
+      y: origin.y + event.clientY - origin.pointerY,
+    })
+  }
+
+  const handlePointerEnd = () => {
+    dragOrigin.current = null
+  }
+
+  const windowStyle = {
+    '--dsh-drawing-offset-x': `${position.x}px`,
+    '--dsh-drawing-offset-y': `${position.y}px`,
+  } as CSSProperties
+
   return (
-    <section className="dsh-drawing-window" role="dialog" aria-label="图片预览">
+    <section
+      className="dsh-drawing-window"
+      role="dialog"
+      aria-label="图片预览"
+      style={windowStyle}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
+    >
       <header className="dsh-drawing-header">
-        <div>
-          <p className="dsh-drawing-kicker">LIVE CANVAS</p>
-          <h2>绘制预览</h2>
-          <p>
-            {size === null ? '等待可重放的图片数据' : `${size.width} × ${size.height} · 会话重放`}
-          </p>
-        </div>
+        <span className="dsh-drawing-size">
+          {size === null ? '— × —' : `${size.width} × ${size.height}`}
+        </span>
         <button
           className="dsh-drawing-close"
           type="button"
@@ -88,7 +127,6 @@ export function DrawingWindow({ useSession, onClose }: DrawingWindowProps) {
           <canvas ref={canvas} aria-label="根据绘图工具调用重放的图片" />
         </div>
       </div>
-      <footer>显示当前会话中所有绘图工具参数逐步重放后的画面。</footer>
     </section>
   )
 }
