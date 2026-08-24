@@ -53,7 +53,8 @@ Optional opacity, radius, and tolerance fields have no protocol-defined default 
 - { op: "rect", x, y, w, h, fill?, stroke?, strokeWidth?, opacity? }: draw a rectangle.
 - { op: "ellipse", x, y, w, h, fill?, stroke?, strokeWidth?, opacity? }: draw an ellipse fitted to the rectangle.
 - { op: "polygon", points, fill?, stroke?, strokeWidth?, opacity? }: draw a polygon through points, where every point is { x, y }.
-- For rect, ellipse, and polygon, provide at least one of fill or stroke. fill and stroke are colors. strokeWidth is allowed only when stroke is present and must be a positive integer. Prefer at least three points for a meaningful polygon; the current validator only verifies that every supplied point has finite x/y values.
+- { op: "organic_blob", points, fill?, stroke?, strokeWidth?, smoothness?, opacity? }: draw a closed, smoothly curved shape through at least three points. smoothness is a number from 0 (straight segments) to 1 (most rounded), and defaults to 0.5.
+- For rect, ellipse, polygon, and organic_blob, provide at least one of fill or stroke. fill and stroke are colors. strokeWidth is allowed only when stroke is present and must be a positive integer. Prefer at least three points for a meaningful polygon; the current validator only verifies that every supplied point has finite x/y values.
 - { op: "line", x1, y1, x2, y2, color, radius?, opacity? }: draw a colored line between two points.
 - { op: "brush", points, color, radius?, opacity? }: draw a colored freehand path through points. Use at least two points for a visible path; each point is { x, y }.
 
@@ -72,6 +73,9 @@ Create a blue background then add a white outlined rectangle:
 
 Draw a filled triangle inside an explicit selection:
 { "expectedVersion": 8, "selection": { "type": "rect", "x": 0, "y": 0, "w": 512, "h": 512 }, "ops": [{ "op": "polygon", "points": [{ "x": 256, "y": 40 }, { "x": 80, "y": 400 }, { "x": 432, "y": 400 }], "fill": "#F59E0B" }] }
+
+Draw a rounded organic blob:
+{ "expectedVersion": 8, "selection": { "type": "all" }, "ops": [{ "op": "organic_blob", "points": [{ "x": 256, "y": 60 }, { "x": 410, "y": 150 }, { "x": 360, "y": 380 }, { "x": 150, "y": 420 }, { "x": 80, "y": 180 }], "smoothness": 0.8, "fill": "#A855F7" }] }
 
 Fill the user-selected region with a two-stop gradient:
 { "expectedVersion": 9, "selection": { "type": "current" }, "ops": [{ "op": "linear_gradient", "x1": 0, "y1": 0, "x2": 0, "y2": 300, "colors": [{ "color": "#0EA5E9", "offset": "0%" }, { "color": "#312E81", "offset": "100%" }] }] }

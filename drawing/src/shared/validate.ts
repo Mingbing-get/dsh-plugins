@@ -113,6 +113,13 @@ export function validateEditOperation(value: unknown): ValidationResult {
         return (
           isPointArray(value.points) && isShapeStyle(value) && isOptionalFiniteNumber(value.opacity)
         )
+      case 'organic_blob':
+        return (
+          isPointArrayWithMinimumLength(value.points, 3) &&
+          isShapeStyle(value) &&
+          isOptionalSmoothness(value.smoothness) &&
+          isOptionalFiniteNumber(value.opacity)
+        )
       case 'line':
         return (
           isLine(value) &&
@@ -238,6 +245,17 @@ function isNonNegativeInteger(value: unknown): value is number {
 
 function isPointArray(value: unknown): value is Drawing.Point[] {
   return Array.isArray(value) && value.every((point) => !validatePoint(point).isError)
+}
+
+function isPointArrayWithMinimumLength(
+  value: unknown,
+  minimumLength: number,
+): value is Drawing.Point[] {
+  return isPointArray(value) && value.length >= minimumLength
+}
+
+function isOptionalSmoothness(value: unknown): value is number | undefined {
+  return value === undefined || (isFiniteNumber(value) && value >= 0 && value <= 1)
 }
 
 function isLine(value: Record<string, unknown>): boolean {

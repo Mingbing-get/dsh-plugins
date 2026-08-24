@@ -41,6 +41,7 @@ describe('drawing server tools', () => {
     ])
     expect(contexts[0]!.text).toContain('## Examples')
     expect(contexts[0]!.text).toContain('{ op: "brush", points, color, radius?, opacity? }')
+    expect(contexts[0]!.text).toContain('{ op: "organic_blob", points, fill?, stroke?')
 
     const exec = { signal: new AbortController().signal } as ToolRunContext
     await expect(

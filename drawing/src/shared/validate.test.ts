@@ -43,6 +43,18 @@ describe('validateEditOperation', () => {
         strokeWidth: 1,
       }).isError,
     ).toBe(false)
+    expect(
+      validateEditOperation({
+        op: 'organic_blob',
+        points: [
+          { x: 0, y: 0 },
+          { x: 4, y: 0 },
+          { x: 2, y: 3 },
+        ],
+        smoothness: 0.8,
+        fill: '#ffffff',
+      }).isError,
+    ).toBe(false)
   })
 
   it('rejects shapes without a style or with an invalid stroke width', () => {
@@ -64,6 +76,28 @@ describe('validateEditOperation', () => {
         points: [{ x: 0, y: 0 }],
         fill: '#ffffff',
         strokeWidth: 1,
+      }).isError,
+    ).toBe(true)
+    expect(
+      validateEditOperation({
+        op: 'organic_blob',
+        points: [
+          { x: 0, y: 0 },
+          { x: 4, y: 0 },
+        ],
+        fill: '#ffffff',
+      }).isError,
+    ).toBe(true)
+    expect(
+      validateEditOperation({
+        op: 'organic_blob',
+        points: [
+          { x: 0, y: 0 },
+          { x: 4, y: 0 },
+          { x: 2, y: 3 },
+        ],
+        smoothness: 1.1,
+        fill: '#ffffff',
       }).isError,
     ).toBe(true)
   })

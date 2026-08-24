@@ -13,6 +13,7 @@ export namespace Drawing {
     | RectOperation
     | EllipseOperation
     | PolygonOperation
+    | OrganicBlobOperation
     | LineOperation
     | BrushOperation
     | ReplaceColorOperation
@@ -123,6 +124,14 @@ export namespace Drawing {
   export interface PolygonOperation extends ShapeStyle {
     op: 'polygon'
     points: Point[]
+    opacity?: number
+  }
+  /** A closed, smoothly interpolated shape through its points. */
+  export interface OrganicBlobOperation extends ShapeStyle {
+    op: 'organic_blob'
+    points: Point[]
+    /** Curve tension from 0 (straight segments) to 1 (most rounded). Defaults to 0.5. */
+    smoothness?: number
     opacity?: number
   }
   export interface LineOperation {

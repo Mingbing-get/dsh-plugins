@@ -70,6 +70,30 @@ function drawPath(context: Context, points: Drawing.Point[]): void {
   for (const point of points.slice(1)) context.lineTo(point.x, point.y)
 }
 
+function drawOrganicBlob(context: Context, points: Drawing.Point[], smoothness = 0.5): void {
+  const count = points.length
+  if (count < 3) return
+
+  context.beginPath()
+  context.moveTo(points[0]!.x, points[0]!.y)
+  for (let index = 0; index < count; index += 1) {
+    const previous = points[(index - 1 + count) % count]!
+    const current = points[index]!
+    const next = points[(index + 1) % count]!
+    const afterNext = points[(index + 2) % count]!
+    const control1 = {
+      x: current.x + ((next.x - previous.x) * smoothness) / 6,
+      y: current.y + ((next.y - previous.y) * smoothness) / 6,
+    }
+    const control2 = {
+      x: next.x - ((afterNext.x - current.x) * smoothness) / 6,
+      y: next.y - ((afterNext.y - current.y) * smoothness) / 6,
+    }
+    context.bezierCurveTo(control1.x, control1.y, control2.x, control2.y, next.x, next.y)
+  }
+  context.closePath()
+}
+
 function drawOperation(
   document: ImageDocument,
   operation: EditOperation,
@@ -148,6 +172,18 @@ function drawOperation(
     case 'polygon':
       drawPath(context, operation.points)
       context.closePath()
+      if (operation.fill !== undefined) {
+        context.fillStyle = operation.fill
+        context.fill()
+      }
+      if (operation.stroke !== undefined) {
+        context.strokeStyle = operation.stroke
+        context.lineWidth = operation.strokeWidth ?? 1
+        context.stroke()
+      }
+      break
+    case 'organic_blob':
+      drawOrganicBlob(context, operation.points, operation.smoothness)
       if (operation.fill !== undefined) {
         context.fillStyle = operation.fill
         context.fill()
