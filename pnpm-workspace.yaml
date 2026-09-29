@@ -2,6 +2,7 @@ packages:
   - gomoku
   - codegraph
   - drawing
+  - task
 
 # The lockfile pins the complete dependency graph. Do not reject a valid locked
 # dependency merely because a platform-specific optional package is newly released.

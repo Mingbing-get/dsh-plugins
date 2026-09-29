@@ -9,7 +9,7 @@ dsh plugin --profile web add @meing/dsh-gomoku-plugin
 dsh plugin --profile web add @meing/dsh-codegraph-plugin
 ```
 
-`@meing/dsh-drawing-plugin` 已建立产品与工程骨架，当前尚未实现或发布。
+`@meing/dsh-drawing-plugin` 与 `@meing/dsh-task-plugin` 已建立产品与工程骨架，当前尚未实现或发布。`task` 插件规划需求梳理、任务拆解与后台排期执行能力，定义见 [`task/docs/products/task-orchestrator.md`](./task/docs/products/task-orchestrator.md)。
 
 如需可复现安装，请指定版本：
 
@@ -27,7 +27,7 @@ pnpm build
 pnpm pack:check
 ```
 
-两个插件仍可在各自目录中单独构建和测试。
+各插件仍可在各自目录中单独构建和测试。
 
 ## 发布
 

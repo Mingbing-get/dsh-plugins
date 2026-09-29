@@ -1,0 +1,3 @@
+- insert:
+    - id: task-orchestrator
+      name: '@meing/dsh-task-plugin'
