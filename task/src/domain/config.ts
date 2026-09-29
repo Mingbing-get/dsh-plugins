@@ -62,6 +62,17 @@ export interface TaskOrchestratorOptions {
    * under the workspace owning the repository they run against.
    */
   exposeOrchestratorSessions: boolean
+  /**
+   * Agent preset every orchestrator session (execution, decomposition,
+   * requirement analysis) is composed from.
+   *
+   * `undefined` (the default) takes the roster's default preset — the same one
+   * the Web frontend mounts when the user starts a conversation, so an
+   * orchestrator session gets the tools a normal conversation has. The preset
+   * is what supplies those tools: a session that joins none reads only the host
+   * plane, which in the Web profile is the plugin's own `task_*` tools.
+   */
+  agentPreset?: string
   /** Whether the periodic fallback scan runs at all. */
   enableScheduler: boolean
 }
@@ -179,6 +190,12 @@ export function resolveOptions(
   const workspaceRoot = normalizeRoot(config.workspaceRoot ?? cwd)
   const stateDir = resolveStateDir(config.stateDir)
   const databaseFile = resolveDatabaseFile(config.databaseFile)
+  // A blank preset name means "no opinion", which is what the roster default
+  // already expresses; keeping it out of the resolved options also keeps the
+  // optional property absent rather than empty.
+  const configuredPreset = config.agentPreset?.trim()
+  const agentPreset =
+    configuredPreset === undefined || configuredPreset.length === 0 ? undefined : configuredPreset
   return {
     workspaceRoot,
     stateDir,
@@ -194,6 +211,7 @@ export function resolveOptions(
     taskTimeoutMs: config.taskTimeoutMs ?? 30 * 60_000,
     commitMessageTemplate: config.commitMessageTemplate ?? 'feat({id}): {title}',
     exposeOrchestratorSessions: config.exposeOrchestratorSessions ?? true,
+    ...(agentPreset === undefined ? {} : { agentPreset }),
     enableScheduler: config.enableScheduler ?? true,
   }
 }

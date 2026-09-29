@@ -56,9 +56,9 @@ interface Harness {
   sessions: string[]
 }
 
-function harness(agent: AgentRunner): Harness {
+function harness(agent: AgentRunner, config: Record<string, unknown> = {}): Harness {
   const store = TaskStore.memory()
-  const options = resolveOptions({ workspaceRoot: repo, scanIntervalMs: 1000 }, repo)
+  const options = resolveOptions({ workspaceRoot: repo, scanIntervalMs: 1000, ...config }, repo)
   const paths = new DocPaths(repo, options.docsRoot, options.systemFeaturesFile)
   const gitClient = new GitClient(repo)
   const service = new OrchestratorService({ store, paths, git: gitClient, options, logger })
@@ -85,11 +85,19 @@ afterEach(() => {
 describe('decomposition session', () => {
   it('stores tasks through the planner session and reports them', async () => {
     const sessions: string[] = []
-    const requests: { surface?: boolean | undefined; title?: string | undefined }[] = []
+    const requests: {
+      surface?: boolean | undefined
+      title?: string | undefined
+      agentPreset?: string | undefined
+    }[] = []
     const h = harness({
       async run(request) {
         sessions.push(request.sessionId)
-        requests.push({ surface: request.surface, title: request.title })
+        requests.push({
+          surface: request.surface,
+          title: request.title,
+          agentPreset: request.agentPreset,
+        })
         expect(request.instructions).toContain('task_plan_create')
         h.service.plan({
           slug: 'plan-demo',
@@ -120,7 +128,9 @@ describe('decomposition session', () => {
     expect(result.instruction).toContain('2 个任务')
     expect(sessions).toHaveLength(1)
     // The decomposition session is surfaced like task execution, under its own title.
-    expect(requests).toEqual([{ surface: true, title: '拆解需求 plan-demo' }])
+    expect(requests).toEqual([
+      { surface: true, title: '拆解需求 plan-demo', agentPreset: undefined },
+    ])
     expect(h.store.listTasks().map((task) => task.status)).toEqual(['pending', 'pending'])
   })
 
@@ -187,5 +197,26 @@ describe('decomposition session', () => {
     const product = h.store.findProductBySlug('plan-demo')
     const result = await h.planner.decompose(product!, new AbortController().signal)
     expect(result.warning).toContain('没有创建任何任务')
+  })
+
+  it('composes the session from the configured agent preset', async () => {
+    const seen: (string | undefined)[] = []
+    const h = harness(
+      {
+        run(request) {
+          seen.push(request.agentPreset)
+          return Promise.resolve({ sessionId: request.sessionId, timedOut: false })
+        },
+      },
+      { agentPreset: 'ptc' },
+    )
+    await h.service.draftRequirement(draft(), { agentId: 'a' })
+    h.service.setHooks({
+      askUser: async () => ({ answers: [{ id: 'confirm-requirement', selected: ['确认'] }] }),
+    })
+    await h.service.confirmRequirement({ slug: 'plan-demo' })
+    const product = h.store.findProductBySlug('plan-demo')
+    await h.planner.decompose(product!, new AbortController().signal)
+    expect(seen).toEqual(['ptc'])
   })
 })

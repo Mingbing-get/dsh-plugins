@@ -101,6 +101,9 @@ export class TaskRunner {
         label: sessionLabel,
         title: this.sessionTitle(task),
         surface: this.options.exposeOrchestratorSessions,
+        ...(this.options.agentPreset === undefined
+          ? {}
+          : { agentPreset: this.options.agentPreset }),
         instructions: executorInstructions(task, { docsRoot: this.options.docsRoot }),
         cwd: this.options.workspaceRoot,
         sessionId,

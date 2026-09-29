@@ -71,22 +71,23 @@ dsh --profile web --dump-config | grep -A2 task-orchestrator
 
 ## 配置
 
-| 配置项                       | 默认值                                 | 说明                                                  |
-| ---------------------------- | -------------------------------------- | ----------------------------------------------------- |
-| `workspaceRoot`              | `process.cwd()`                        | **回退**：仅当调用不带会话工作目录时使用              |
-| `stateDir`                   | `$DSH_HOME/storages/task-orchestrator` | 插件运行状态目录（绝对路径或 `~` 开头），数据库放这里 |
-| `databaseFile`               | 每工作区一个 `<slug>-<hash12>.sqlite`  | 状态目录内的数据库文件名；显式指定则各工作区共用一个  |
-| `docsRoot`                   | `docs`                                 | 目标项目的文档根目录                                  |
-| `systemFeaturesFile`         | `system-features.md`                   | 系统功能全景固定文件名                                |
-| `maxRetries`                 | `2`                                    | 单任务自动重试次数                                    |
-| `retryBackoffMs`             | `[30000, 120000]`                      | 重试退避                                              |
-| `scanIntervalMs`             | `30000`                                | 周期兜底扫描间隔                                      |
-| `maxClarifyRounds`           | `8`                                    | 单需求最大提问轮数                                    |
-| `requireCleanWorktree`       | `true`                                 | 执行前要求 git 工作区干净                             |
-| `taskTimeoutMs`              | `1800000`                              | 单任务执行会话超时                                    |
-| `commitMessageTemplate`      | `feat({id}): {title}`                  | 任务提交信息模板                                      |
-| `exposeOrchestratorSessions` | `true`                                 | 把执行/拆解会话作为普通会话暴露到前端会话列表         |
-| `enableScheduler`            | `true`                                 | 是否启动周期扫描                                      |
+| 配置项                       | 默认值                                    | 说明                                                  |
+| ---------------------------- | ----------------------------------------- | ----------------------------------------------------- |
+| `workspaceRoot`              | `process.cwd()`                           | **回退**：仅当调用不带会话工作目录时使用              |
+| `stateDir`                   | `$DSH_HOME/storages/task-orchestrator`    | 插件运行状态目录（绝对路径或 `~` 开头），数据库放这里 |
+| `databaseFile`               | 每工作区一个 `<slug>-<hash12>.sqlite`     | 状态目录内的数据库文件名；显式指定则各工作区共用一个  |
+| `docsRoot`                   | `docs`                                    | 目标项目的文档根目录                                  |
+| `systemFeaturesFile`         | `system-features.md`                      | 系统功能全景固定文件名                                |
+| `maxRetries`                 | `2`                                       | 单任务自动重试次数                                    |
+| `retryBackoffMs`             | `[30000, 120000]`                         | 重试退避                                              |
+| `scanIntervalMs`             | `30000`                                   | 周期兜底扫描间隔                                      |
+| `maxClarifyRounds`           | `8`                                       | 单需求最大提问轮数                                    |
+| `requireCleanWorktree`       | `true`                                    | 执行前要求 git 工作区干净                             |
+| `taskTimeoutMs`              | `1800000`                                 | 单任务执行会话超时                                    |
+| `commitMessageTemplate`      | `feat({id}): {title}`                     | 任务提交信息模板                                      |
+| `exposeOrchestratorSessions` | `true`                                    | 把执行/拆解会话作为普通会话暴露到前端会话列表         |
+| `agentPreset`                | 预设名单的默认预设（Web 下是 `standard`） | 编排会话挂载的 Agent 预设；决定会话能用哪些工具       |
+| `enableScheduler`            | `true`                                    | 是否启动周期扫描                                      |
 
 文档产物（`docs/products/`、`docs/tasks/`）落在**目标项目仓库**中，并随任务提交进入版本历史；运行状态（SQLite 数据库）落在**插件侧的状态目录**（默认 `~/.dsh/storages/task-orchestrator/`，跟着 `$DSH_HOME` 走，不在插件包里）。因此工作区不会多出 `.dsh/` 之类的目录，`git status` 始终干净，也不会因为插件自己的运行文件弄脏工作区而卡在 `requireCleanWorktree` 预检上。
 
@@ -94,12 +95,12 @@ dsh --profile web --dump-config | grep -A2 task-orchestrator
 
 ```sh
 pnpm install
-pnpm --filter @meing/dsh-task-plugin test     # 85 个用例
+pnpm --filter @meing/dsh-task-plugin test     # 92 个用例
 pnpm --filter @meing/dsh-task-plugin build
 pnpm lint && pnpm format:check && pnpm test && pnpm build
 ```
 
-测试覆盖状态机与 DAG 校验、SQLite 仓储与乐观锁、系统功能全景增量合并（包含对真实 `system-features.md` 的回环校验）、工具契约、拆解会话（确认后自动启动、幂等、失败降级）、编排会话的前端可见性（普通会话创建、标题与工作区挂载、挂载失败不影响执行）、多工作区解析（同一进程按会话 cwd 隔离数据库/文档/任务编号）、真实 cordis 上下文下的插件装载（工具/面板/指令三面的 inject 契约与两种面板传输），以及"澄清 → 确认 → 拆解 → 调度 → 提交 → 失败重试"的端到端流程（在临时 git 仓库中真实提交）。
+测试覆盖状态机与 DAG 校验、SQLite 仓储与乐观锁、系统功能全景增量合并（包含对真实 `system-features.md` 的回环校验）、工具契约、拆解会话（确认后自动启动、幂等、失败降级）、编排会话的前端可见性（普通会话创建、标题与工作区挂载、挂载失败不影响执行）、编排会话的 Agent 预设组合（默认预设与显式预设、header 记录、预设缺失/损坏时的行为、无预设名单的部署）、多工作区解析（同一进程按会话 cwd 隔离数据库/文档/任务编号）、真实 cordis 上下文下的插件装载（工具/面板/指令三面的 inject 契约与两种面板传输），以及"澄清 → 确认 → 拆解 → 调度 → 提交 → 失败重试"的端到端流程（在临时 git 仓库中真实提交）。
 
 ## 面板传输
 
@@ -129,3 +130,21 @@ pnpm lint && pnpm format:check && pnpm test && pnpm build
 - 会话结束后照常保留，可以回看完整历史；
 - 挂载是按需的：会话创建时会挂到该仓库已有的工作区上；该目录还没有工作区时按前端的做法自动创建（`workspaceRegistry.resolveByPath` → `create` → `attachSession`）。标题与挂载任何一步失败都只记日志，绝不影响编排本身。
 - 不希望会话列表里出现这些编排记录时，把 `exposeOrchestratorSessions` 设为 `false`：会话退回隐藏的 subagent，过程只能通过状态、通知与 `task_query` 观察。
+
+## 执行会话用哪些工具
+
+编排会话的**工具集来自 Agent 预设**，不是插件自带的。Web 面把模型可见的工具行（`tool-fs`、`tool-fs-search`、`tool-bash`、`tool-todo`、`tool-web`、`tool-subagent`…）全部禁用在宿主 plane 上，改由每个会话挂载的预设提供（见 `dsh-web-app/cordis.patch.yml` 的「the agent plane moves behind agent presets」一节）；宿主 plane 里只剩插件自己注册的 `task_*` 工具。
+
+因此插件创建会话时必须像 `session.create`（前端新建对话）那样组合预设：
+
+- 解析预设 id（默认取预设名单的默认预设，即前端的默认模式），写进会话 header 的 `agentPreset`；
+- 在 `agents.create` 的 `setup` 里 `agentPresets.mount(agentCtx, id)`，把预设挂到**该会话自己的作用域**上。
+
+漏掉这一步，会话作用域里就只有宿主 plane 的 9 个 `task_*` 工具：读不了任务文档、跑不了验证命令、改不了代码，任务必然失败（这是 0.1.0 早期版本的真实故障）。用真实 Web profile 实测：不挂预设的会话解析出 `task_*` 9 个工具，挂了预设的会话解析出 36 个（`read`/`write`/`edit`/`bash`/`glob`/`grep`/`todo_write`/`skill`/`subagent`/`web_search`… 加上 `task_*`）。
+
+相关行为：
+
+- 预设组合由 `agentPreset` 配置项覆盖（例如改用 `ptc`、`minimal`）；留空即用默认预设。
+- 预设 id 在创建**之前**解析（会话边界会先快照 `meta`），挂载在 `setup` 里进行；预设不存在或损坏时创建直接回滚，不会留下一个没法干活的会话，重试记录里能看到具体报错。
+- 部署里没有预设名单时（TUI/headless 面：模型可见工具仍在宿主 plane）不挂任何预设，行为与旧版一致；此时若显式配了 `agentPreset`，插件会警告一次并忽略。
+- `/task start` 的需求梳理会话同样组合预设。

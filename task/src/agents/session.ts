@@ -15,6 +15,15 @@
  * - **Internal** (`surface` off, plugin option `exposeOrchestratorSessions`):
  *   `origin: 'subagent'`, deliberately hidden from every navigation surface —
  *   the orchestrator then works without leaving rows in the user's session list.
+ *
+ * Every run is composed from an **agent preset**. Since the agent plane moved
+ * behind presets, a session that joins none reads only the host plane — in the
+ * Web profile that is this plugin's own `task_*` tools and nothing else, because
+ * `tool-fs`, `tool-bash` and friends are preset rows there. A run without a
+ * preset can neither read the task document nor touch the repository, so the
+ * composition is resolved here exactly like `session.create` does it: the roster
+ * default (what the frontend mounts for a conversation the user starts) unless
+ * the plugin config names another preset.
  */
 
 import type { Context } from '@deepseek-ai/cordis'
@@ -42,6 +51,12 @@ export interface AgentRunRequest {
    * and streams it once opened.
    */
   surface?: boolean
+  /**
+   * Agent preset this run is composed from (plugin option `agentPreset`).
+   * `undefined` asks the roster for its default — the preset the Web frontend
+   * mounts when the user starts a conversation.
+   */
+  agentPreset?: string
   /** Full instruction text handed to the model. */
   instructions: string
   /** Working directory of the child session. */
@@ -87,6 +102,23 @@ interface AttachableWorkspace {
 interface WorkspaceRegistryFace {
   resolveByPath(path: string): Promise<AttachableWorkspace | undefined>
   create(path: string, title?: string): Promise<AttachableWorkspace>
+}
+
+/** One preset record the roster resolved, as far as the runner reads it. */
+interface AgentPresetFace {
+  id: string
+}
+
+/**
+ * Minimal host-side preset face.
+ *
+ * Both calls are the public roster API `session.create` uses; the service is
+ * absent from a deployment with no preset roots, where every session shares the
+ * host composition instead.
+ */
+interface AgentPresetsFace {
+  resolve(id?: string): Promise<AgentPresetFace>
+  mount(agentCtx: Context, id?: string): Promise<unknown>
 }
 
 /**
@@ -155,23 +187,50 @@ function waitForIdle(agent: Agent, signal: AbortSignal): Promise<void> {
  * @returns a runner that creates and drives one session per request.
  */
 export function createDshAgentRunner(ctx: Context): AgentRunner {
+  let warnedNoRoster = false
   return {
     async run(request: AgentRunRequest): Promise<AgentRunResult> {
       const sessionId = SessionId(request.sessionId)
       const selection = ctx.get('agentDefaultModel')?.currentSelection()
       const timeout = AbortSignal.timeout(request.timeoutMs)
       const signal = AbortSignal.any([request.signal, timeout])
+      // Resolved before `create` because the session boundary snapshots `meta`
+      // first, and recorded on the header so a resumed or forked session
+      // rebuilds the composition its history was produced under. Mounting
+      // itself happens in `setup` (below), where a broken preset rolls the
+      // whole creation back instead of publishing a session with no tools.
+      const presets = ctx.get('agentPresets') as AgentPresetsFace | undefined
+      if (presets === undefined && request.agentPreset !== undefined && !warnedNoRoster) {
+        // A rosterless deployment keeps its model-facing tools in the host
+        // composition, so the run still works — but the configured name is
+        // honest only where a roster can honour it. Warned once: this is a
+        // per-deployment fact, not a per-run one.
+        warnedNoRoster = true
+        ctx.logger.warn(
+          `task-orchestrator: 部署未启用 agent preset，已忽略 agentPreset 配置「${request.agentPreset}」`,
+        )
+      }
+      const presetId =
+        presets === undefined ? undefined : (await presets.resolve(request.agentPreset)).id
       // A surfaced session carries no `origin`, which is exactly what keeps it
       // out of the frontend's subagent filter; an internal one is tagged so it
       // stays invisible everywhere.
-      const meta =
-        request.surface === true
-          ? { cwd: request.cwd }
-          : { cwd: request.cwd, origin: 'subagent' as const }
+      const meta = {
+        cwd: request.cwd,
+        ...(presetId === undefined ? {} : { agentPreset: presetId }),
+        ...(request.surface === true ? {} : { origin: 'subagent' as const }),
+      }
       const handle = await ctx.agents.create({
         sessionId,
         meta,
         signal,
+        ...(presets === undefined || presetId === undefined
+          ? {}
+          : {
+              setup: async (agentCtx: Context): Promise<void> => {
+                await presets.mount(agentCtx, presetId)
+              },
+            }),
         ...(selection === undefined
           ? {}
           : { agentOptions: { provider: selection.provider, model: selection.model } }),

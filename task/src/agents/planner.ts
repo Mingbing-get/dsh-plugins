@@ -65,6 +65,9 @@ export class Planner {
         label,
         title: `拆解需求 ${product.slug}`,
         surface: this.options.exposeOrchestratorSessions,
+        ...(this.options.agentPreset === undefined
+          ? {}
+          : { agentPreset: this.options.agentPreset }),
         instructions: plannerInstructions(product, product.documentPath),
         cwd: this.options.workspaceRoot,
         sessionId,

@@ -66,6 +66,7 @@ async function handle(deps: CommandDeps, invocation: CommandInvocation): Promise
         const label = `analyst-${randomUUID().slice(0, 8)}`
         await deps.agents.run({
           label,
+          ...(options.agentPreset === undefined ? {} : { agentPreset: options.agentPreset }),
           instructions: analystInstructions(argument),
           cwd: options.workspaceRoot,
           sessionId: `task-${label}`,
