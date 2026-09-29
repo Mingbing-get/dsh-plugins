@@ -4,7 +4,9 @@
  * The product document (§5.3.1) requires decomposition to run in its own model
  * session rather than inline in the interactive conversation: the planner reads
  * the confirmed document and calls `task_plan_create`, and this module reports
- * what that session stored.
+ * what that session stored. Like task execution, the session is surfaced in the
+ * user's session list (title `拆解需求 <slug>`) unless the plugin option
+ * `exposeOrchestratorSessions` turns that off.
  */
 
 import type { AgentRunner } from './session.ts'
@@ -61,6 +63,8 @@ export class Planner {
     try {
       await this.agents.run({
         label,
+        title: `拆解需求 ${product.slug}`,
+        surface: this.options.exposeOrchestratorSessions,
         instructions: plannerInstructions(product, product.documentPath),
         cwd: this.options.workspaceRoot,
         sessionId,

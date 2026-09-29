@@ -85,9 +85,11 @@ afterEach(() => {
 describe('decomposition session', () => {
   it('stores tasks through the planner session and reports them', async () => {
     const sessions: string[] = []
+    const requests: { surface?: boolean | undefined; title?: string | undefined }[] = []
     const h = harness({
       async run(request) {
         sessions.push(request.sessionId)
+        requests.push({ surface: request.surface, title: request.title })
         expect(request.instructions).toContain('task_plan_create')
         h.service.plan({
           slug: 'plan-demo',
@@ -117,6 +119,8 @@ describe('decomposition session', () => {
     expect(result.decomposition.tasks.map((task) => task.taskId)).toEqual(['T1', 'T2'])
     expect(result.instruction).toContain('2 个任务')
     expect(sessions).toHaveLength(1)
+    // The decomposition session is surfaced like task execution, under its own title.
+    expect(requests).toEqual([{ surface: true, title: '拆解需求 plan-demo' }])
     expect(h.store.listTasks().map((task) => task.status)).toEqual(['pending', 'pending'])
   })
 

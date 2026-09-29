@@ -16,7 +16,7 @@ import type { AgentRunner } from '../agents/session.ts'
 import { executorInstructions } from '../agents/prompts.ts'
 import type { TaskOrchestratorOptions } from '../domain/config.ts'
 import { describeError } from '../domain/errors.ts'
-import type { FailureKind, TaskRunOutcome } from '../domain/types.ts'
+import type { FailureKind, TaskRecord, TaskRunOutcome } from '../domain/types.ts'
 
 /** Collaborators of the executor. */
 export interface TaskRunnerDeps {
@@ -99,6 +99,8 @@ export class TaskRunner {
     try {
       const run = await this.agents.run({
         label: sessionLabel,
+        title: this.sessionTitle(task),
+        surface: this.options.exposeOrchestratorSessions,
         instructions: executorInstructions(task, { docsRoot: this.options.docsRoot }),
         cwd: this.options.workspaceRoot,
         sessionId,
@@ -205,6 +207,18 @@ export class TaskRunner {
 
   private commitMessage(id: string, title: string): string {
     return this.options.commitMessageTemplate.replace(/\{id\}/gu, id).replace(/\{title\}/gu, title)
+  }
+
+  /**
+   * Sidebar title of one execution session. `attempt` is the pre-increment
+   * count, so a retry is named by the attempt it is about to start.
+   * @param task - task being executed.
+   * @returns `任务 T1 · 标题` plus the attempt suffix of a retry.
+   */
+  private sessionTitle(task: TaskRecord): string {
+    const attempt = task.attempt + 1
+    const suffix = attempt > 1 ? `（第 ${String(attempt)} 次尝试）` : ''
+    return `任务 ${task.id} · ${task.title}${suffix}`
   }
 
   private async fail(

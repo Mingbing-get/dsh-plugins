@@ -71,21 +71,22 @@ dsh --profile web --dump-config | grep -A2 task-orchestrator
 
 ## 配置
 
-| 配置项                  | 默认值                                 | 说明                                                  |
-| ----------------------- | -------------------------------------- | ----------------------------------------------------- |
-| `workspaceRoot`         | `process.cwd()`                        | **回退**：仅当调用不带会话工作目录时使用              |
-| `stateDir`              | `$DSH_HOME/storages/task-orchestrator` | 插件运行状态目录（绝对路径或 `~` 开头），数据库放这里 |
-| `databaseFile`          | 每工作区一个 `<slug>-<hash12>.sqlite`  | 状态目录内的数据库文件名；显式指定则各工作区共用一个  |
-| `docsRoot`              | `docs`                                 | 目标项目的文档根目录                                  |
-| `systemFeaturesFile`    | `system-features.md`                   | 系统功能全景固定文件名                                |
-| `maxRetries`            | `2`                                    | 单任务自动重试次数                                    |
-| `retryBackoffMs`        | `[30000, 120000]`                      | 重试退避                                              |
-| `scanIntervalMs`        | `30000`                                | 周期兜底扫描间隔                                      |
-| `maxClarifyRounds`      | `8`                                    | 单需求最大提问轮数                                    |
-| `requireCleanWorktree`  | `true`                                 | 执行前要求 git 工作区干净                             |
-| `taskTimeoutMs`         | `1800000`                              | 单任务执行会话超时                                    |
-| `commitMessageTemplate` | `feat({id}): {title}`                  | 任务提交信息模板                                      |
-| `enableScheduler`       | `true`                                 | 是否启动周期扫描                                      |
+| 配置项                       | 默认值                                 | 说明                                                  |
+| ---------------------------- | -------------------------------------- | ----------------------------------------------------- |
+| `workspaceRoot`              | `process.cwd()`                        | **回退**：仅当调用不带会话工作目录时使用              |
+| `stateDir`                   | `$DSH_HOME/storages/task-orchestrator` | 插件运行状态目录（绝对路径或 `~` 开头），数据库放这里 |
+| `databaseFile`               | 每工作区一个 `<slug>-<hash12>.sqlite`  | 状态目录内的数据库文件名；显式指定则各工作区共用一个  |
+| `docsRoot`                   | `docs`                                 | 目标项目的文档根目录                                  |
+| `systemFeaturesFile`         | `system-features.md`                   | 系统功能全景固定文件名                                |
+| `maxRetries`                 | `2`                                    | 单任务自动重试次数                                    |
+| `retryBackoffMs`             | `[30000, 120000]`                      | 重试退避                                              |
+| `scanIntervalMs`             | `30000`                                | 周期兜底扫描间隔                                      |
+| `maxClarifyRounds`           | `8`                                    | 单需求最大提问轮数                                    |
+| `requireCleanWorktree`       | `true`                                 | 执行前要求 git 工作区干净                             |
+| `taskTimeoutMs`              | `1800000`                              | 单任务执行会话超时                                    |
+| `commitMessageTemplate`      | `feat({id}): {title}`                  | 任务提交信息模板                                      |
+| `exposeOrchestratorSessions` | `true`                                 | 把执行/拆解会话作为普通会话暴露到前端会话列表         |
+| `enableScheduler`            | `true`                                 | 是否启动周期扫描                                      |
 
 文档产物（`docs/products/`、`docs/tasks/`）落在**目标项目仓库**中，并随任务提交进入版本历史；运行状态（SQLite 数据库）落在**插件侧的状态目录**（默认 `~/.dsh/storages/task-orchestrator/`，跟着 `$DSH_HOME` 走，不在插件包里）。因此工作区不会多出 `.dsh/` 之类的目录，`git status` 始终干净，也不会因为插件自己的运行文件弄脏工作区而卡在 `requireCleanWorktree` 预检上。
 
@@ -93,12 +94,12 @@ dsh --profile web --dump-config | grep -A2 task-orchestrator
 
 ```sh
 pnpm install
-pnpm --filter @meing/dsh-task-plugin test     # 80 个用例
+pnpm --filter @meing/dsh-task-plugin test     # 85 个用例
 pnpm --filter @meing/dsh-task-plugin build
 pnpm lint && pnpm format:check && pnpm test && pnpm build
 ```
 
-测试覆盖状态机与 DAG 校验、SQLite 仓储与乐观锁、系统功能全景增量合并（包含对真实 `system-features.md` 的回环校验）、工具契约、拆解会话（确认后自动启动、幂等、失败降级）、多工作区解析（同一进程按会话 cwd 隔离数据库/文档/任务编号）、真实 cordis 上下文下的插件装载（工具/面板/指令三面的 inject 契约与两种面板传输），以及"澄清 → 确认 → 拆解 → 调度 → 提交 → 失败重试"的端到端流程（在临时 git 仓库中真实提交）。
+测试覆盖状态机与 DAG 校验、SQLite 仓储与乐观锁、系统功能全景增量合并（包含对真实 `system-features.md` 的回环校验）、工具契约、拆解会话（确认后自动启动、幂等、失败降级）、编排会话的前端可见性（普通会话创建、标题与工作区挂载、挂载失败不影响执行）、多工作区解析（同一进程按会话 cwd 隔离数据库/文档/任务编号）、真实 cordis 上下文下的插件装载（工具/面板/指令三面的 inject 契约与两种面板传输），以及"澄清 → 确认 → 拆解 → 调度 → 提交 → 失败重试"的端到端流程（在临时 git 仓库中真实提交）。
 
 ## 面板传输
 
@@ -114,3 +115,17 @@ pnpm lint && pnpm format:check && pnpm test && pnpm build
 所有仓库共用同一个状态目录，但**每个仓库一个数据库文件**：默认文件名由仓库绝对路径派生（`<目录名>-<路径哈希前 12 位>.sqlite`），因此同名目录、不同路径或同一个仓库的不同 worktree 都不会串库。需要把多个仓库汇总到一个库时，显式配置 `databaseFile` 即可。
 
 会话创建时插件会接管该工作区，因此重启后"再次活跃的工作区"里的中断任务仍会被自动回收。只有不带会话目录的调用（周期扫描、无会话入口）才回退到 `workspaceRoot`。
+
+## 执行过程在哪里看
+
+插件自己发起的会话都是**普通会话**（不设 `origin: 'subagent'`），因此它们和手动开的对话一样出现在 Web 前端的会话列表里，归在目标仓库对应的工作区分组下：
+
+- 任务执行：标题 `任务 T1 · <任务标题>`（重试追加`（第 N 次尝试）`）；
+- 需求拆解：标题 `拆解需求 <slug>`（确认需求后自动启动的那次拆解会话）。
+
+用法：
+
+- 点开即可**实时**看到模型读了哪些文件、跑了什么命令、调用了哪些任务工具；
+- 会话结束后照常保留，可以回看完整历史；
+- 挂载是按需的：会话创建时会挂到该仓库已有的工作区上；该目录还没有工作区时按前端的做法自动创建（`workspaceRegistry.resolveByPath` → `create` → `attachSession`）。标题与挂载任何一步失败都只记日志，绝不影响编排本身。
+- 不希望会话列表里出现这些编排记录时，把 `exposeOrchestratorSessions` 设为 `false`：会话退回隐藏的 subagent，过程只能通过状态、通知与 `task_query` 观察。

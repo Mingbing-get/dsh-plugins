@@ -72,6 +72,7 @@ export const Config = z.object({
     .min(1000)
     .default(30 * 60_000),
   commitMessageTemplate: z.string().default('feat({id}): {title}'),
+  exposeOrchestratorSessions: z.boolean().default(true),
   enableScheduler: z.boolean().default(true),
 }) as unknown as z<Config>
 

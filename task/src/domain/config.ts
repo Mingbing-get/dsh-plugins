@@ -55,6 +55,13 @@ export interface TaskOrchestratorOptions {
   taskTimeoutMs: number
   /** Commit message template; `{id}` and `{title}` are substituted. */
   commitMessageTemplate: string
+  /**
+   * Surface every orchestrator session (task execution and decomposition) as an
+   * ordinary conversation in the user's session list (see `agents/session.ts`).
+   * Those sessions are then visible and streamable in the Web frontend, listed
+   * under the workspace owning the repository they run against.
+   */
+  exposeOrchestratorSessions: boolean
   /** Whether the periodic fallback scan runs at all. */
   enableScheduler: boolean
 }
@@ -186,6 +193,7 @@ export function resolveOptions(
     requireCleanWorktree: config.requireCleanWorktree ?? true,
     taskTimeoutMs: config.taskTimeoutMs ?? 30 * 60_000,
     commitMessageTemplate: config.commitMessageTemplate ?? 'feat({id}): {title}',
+    exposeOrchestratorSessions: config.exposeOrchestratorSessions ?? true,
     enableScheduler: config.enableScheduler ?? true,
   }
 }
