@@ -4,4 +4,3 @@ lib/
 .codegraph
 dist
 .env
-.dsh/

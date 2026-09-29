@@ -32,7 +32,7 @@ import { WorkspaceRegistry } from './workspace/registry.ts'
 import { registerTaskTools } from './tools/index.ts'
 import { registerTaskCommand } from './commands.ts'
 import { installPanelBridge } from './bridge/panel.ts'
-import { DEFAULT_DATABASE_FILE, resolveOptions } from './domain/config.ts'
+import { resolveOptions } from './domain/config.ts'
 import type { TaskOrchestratorConfig } from './domain/config.ts'
 
 export const name = 'task-orchestrator'
@@ -48,10 +48,17 @@ export const inject = ['tools', 'agents', 'userQuestions', 'systemPrompt'] as co
 /** Plugin configuration; every field is optional and defaulted by the schema. */
 export type Config = TaskOrchestratorConfig
 
-/** Runtime schema for {@link Config}. */
+/**
+ * Runtime schema for {@link Config}.
+ *
+ * `stateDir` and `databaseFile` deliberately carry no schema default: their
+ * real defaults are environment-dependent (they resolve against the harness
+ * home) and are applied by `resolveOptions`.
+ */
 export const Config = z.object({
   workspaceRoot: z.string(),
-  databaseFile: z.string().default(DEFAULT_DATABASE_FILE),
+  stateDir: z.string(),
+  databaseFile: z.string(),
   docsRoot: z.string().default('docs'),
   systemFeaturesFile: z.string().default('system-features.md'),
   maxRetries: z.number().step(1).min(0).default(2),
@@ -191,6 +198,6 @@ export function apply(ctx: Context, config: Config = {}): void {
   }
 
   logger.info(
-    `task-orchestrator: 已加载（按会话工作目录接管仓库；无 cwd 时回退 ${options.workspaceRoot}）`,
+    `task-orchestrator: 已加载（按会话工作目录接管仓库；无 cwd 时回退 ${options.workspaceRoot}；状态目录 ${options.stateDir}）`,
   )
 }

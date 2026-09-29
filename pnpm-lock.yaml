@@ -180,6 +180,9 @@ importers:
       '@deepseek-ai/dsh-commands':
         specifier: link:../../../test/deepseek-harness/packages/interaction/commands
         version: link:../../../test/deepseek-harness/packages/interaction/commands
+      '@deepseek-ai/dsh-home-paths':
+        specifier: link:../../../test/deepseek-harness/packages/util/home-paths
+        version: link:../../../test/deepseek-harness/packages/util/home-paths
       '@deepseek-ai/dsh-llm':
         specifier: link:../../../test/deepseek-harness/packages/llm/llm
         version: link:../../../test/deepseek-harness/packages/llm/llm

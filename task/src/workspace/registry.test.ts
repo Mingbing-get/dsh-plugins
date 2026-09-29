@@ -12,7 +12,7 @@ import type { ToolRunContext } from '@deepseek-ai/dsh-tools'
 import { WorkspaceRegistry, sessionCwd } from './registry.ts'
 import { queryTool } from '../tools/tasks.ts'
 import type { OrchestratorLogger } from '../service.ts'
-import { normalizeRoot, resolveOptions } from '../domain/config.ts'
+import { normalizeRoot, databaseFileName, resolveOptions } from '../domain/config.ts'
 import type { AgentRunner } from '../agents/session.ts'
 
 const logger: OrchestratorLogger = { info: () => {}, warn: () => {}, error: () => {} }
@@ -25,6 +25,7 @@ const agents: AgentRunner = {
 
 let first: string
 let second: string
+let state: string
 
 function repo(prefix: string): string {
   // Canonicalize like the registry does: macOS maps /var onto /private/var,
@@ -37,7 +38,9 @@ function repo(prefix: string): string {
 
 function registry(): WorkspaceRegistry {
   return new WorkspaceRegistry({
-    options: resolveOptions({ scanIntervalMs: 1000 }, first),
+    // Runtime state lives outside every workspace, exactly like the default
+    // `$DSH_HOME/storages/task-orchestrator` does in production.
+    options: resolveOptions({ scanIntervalMs: 1000, stateDir: state }, first),
     logger,
     agents,
     enableScheduler: false,
@@ -47,10 +50,11 @@ function registry(): WorkspaceRegistry {
 beforeEach(() => {
   first = repo('task-ws-a-')
   second = repo('task-ws-b-')
+  state = normalizeRoot(mkdtempSync(join(tmpdir(), 'task-state-')))
 })
 
 afterEach(() => {
-  execFileSync('rm', ['-rf', first, second])
+  execFileSync('rm', ['-rf', first, second, state])
 })
 
 describe('WorkspaceRegistry', () => {
@@ -67,19 +71,24 @@ describe('WorkspaceRegistry', () => {
     registryUnderTest.close()
   })
 
-  it('keeps databases and documents inside each workspace', () => {
+  it('keeps runtime state out of the workspace and documents inside it', () => {
     const registryUnderTest = registry()
     const a = registryUnderTest.resolve(first)
     const b = registryUnderTest.resolve(second)
 
-    expect(a.options.databasePath).toBe(join(first, '.dsh', 'task-orchestrator.sqlite'))
-    expect(b.options.databasePath).toBe(join(second, '.dsh', 'task-orchestrator.sqlite'))
+    expect(a.options.stateDir).toBe(state)
+    expect(a.options.databasePath).toBe(join(state, databaseFileName(first)))
+    expect(b.options.databasePath).toBe(join(state, databaseFileName(second)))
+    expect(a.options.databasePath).not.toBe(b.options.databasePath)
     expect(a.paths.systemFeaturesPath).toBe(join(first, 'docs', 'products', 'system-features.md'))
     expect(b.paths.systemFeaturesPath).toBe(join(second, 'docs', 'products', 'system-features.md'))
     expect(a.git.root).toBe(first)
     expect(b.git.root).toBe(second)
     expect(existsSync(a.options.databasePath)).toBe(true)
-    expect(existsSync(join(first, '.dsh'))).toBe(true)
+    // No `.dsh` directory may appear in the user's working tree: it would show
+    // up as an untracked file and block the clean-worktree preflight.
+    expect(existsSync(join(first, '.dsh'))).toBe(false)
+    expect(existsSync(join(second, '.dsh'))).toBe(false)
     registryUnderTest.close()
   })
 

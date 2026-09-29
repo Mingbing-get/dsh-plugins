@@ -1,7 +1,16 @@
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { assertAcyclic, findCycle, topologicalOrder, validatePlanGraph } from './dag.ts'
 import { canTransition, isTerminal, parseTaskStatus, TASK_STATUSES } from './status.ts'
 import { clamp, isSlug, nonEmptyLines, orDash, resolveSlug, slugify } from './text.ts'
+import {
+  databaseFileName,
+  defaultStateDir,
+  normalizeRoot,
+  optionsForRoot,
+  resolveOptions,
+} from './config.ts'
 import { DocPaths } from '../docs/paths.ts'
 
 describe('slug and text helpers', () => {
@@ -110,5 +119,61 @@ describe('document paths', () => {
   it('refuses to escape the docs tree', () => {
     expect(() => paths.productDoc('../../etc/passwd')).toThrowError(/必须位于/u)
     expect(() => paths.taskDoc('T1', '../../../etc/passwd')).toThrowError(/必须位于/u)
+  })
+})
+
+describe('plugin state location', () => {
+  const root = normalizeRoot('/repo')
+
+  it('keeps the database under the harness home, never in the workspace', () => {
+    const options = resolveOptions({}, root)
+    expect(options.databasePath).toBe(join(defaultStateDir(), databaseFileName(root)))
+    expect(options.stateDir).toBe(defaultStateDir())
+    expect(options.databasePath.startsWith(`${root}/`)).toBe(false)
+    // Documents stay in the target repository.
+    expect(options.docsRoot).toBe('docs')
+  })
+
+  it('gives every workspace its own database file', () => {
+    const a = resolveOptions({}, '/repo/a')
+    const b = resolveOptions({}, '/repo/b')
+    expect(a.stateDir).toBe(b.stateDir)
+    expect(a.databasePath).not.toBe(b.databasePath)
+    // The readable slug survives into the file name.
+    expect(a.databasePath).toMatch(/\ba-[0-9a-f]{12}\.sqlite$/u)
+  })
+
+  it('re-scopes the database path when the workspace root changes', () => {
+    const options = resolveOptions({ stateDir: '/tmp/task-state' }, '/repo/a')
+    const moved = optionsForRoot(options, '/repo/b')
+    expect(moved.stateDir).toBe('/tmp/task-state')
+    expect(moved.databasePath).toBe(join('/tmp/task-state', databaseFileName('/repo/b')))
+  })
+
+  it('honours an explicit stateDir and expands ~', () => {
+    expect(resolveOptions({ stateDir: '/tmp/task-state' }, root).databasePath).toBe(
+      join('/tmp/task-state', databaseFileName(root)),
+    )
+    expect(resolveOptions({ stateDir: '~/dsh-task-state-test' }, root).stateDir).toBe(
+      join(homedir(), 'dsh-task-state-test'),
+    )
+  })
+
+  it('rejects a stateDir or databaseFile that cannot be honoured', () => {
+    expect(() => resolveOptions({ stateDir: 'relative/state' }, root)).toThrowError(/stateDir/u)
+    expect(() => resolveOptions({ databaseFile: '.dsh/task.sqlite' }, root)).toThrowError(
+      /databaseFile/u,
+    )
+  })
+
+  it('shares one explicit database file across workspaces', () => {
+    const options = resolveOptions(
+      { stateDir: '/tmp/task-state', databaseFile: 'shared.sqlite' },
+      root,
+    )
+    expect(options.databasePath).toBe('/tmp/task-state/shared.sqlite')
+    expect(optionsForRoot(options, '/repo/other').databasePath).toBe(
+      '/tmp/task-state/shared.sqlite',
+    )
   })
 })

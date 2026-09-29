@@ -71,28 +71,29 @@ dsh --profile web --dump-config | grep -A2 task-orchestrator
 
 ## 配置
 
-| 配置项                  | 默认值                          | 说明                                                |
-| ----------------------- | ------------------------------- | --------------------------------------------------- |
-| `workspaceRoot`         | `process.cwd()`                 | **回退**：仅当调用不带会话工作目录时使用            |
-| `databaseFile`          | `.dsh/task-orchestrator.sqlite` | SQLite 位置（相对每个工作区根目录，建议 gitignore） |
-| `docsRoot`              | `docs`                          | 目标项目的文档根目录                                |
-| `systemFeaturesFile`    | `system-features.md`            | 系统功能全景固定文件名                              |
-| `maxRetries`            | `2`                             | 单任务自动重试次数                                  |
-| `retryBackoffMs`        | `[30000, 120000]`               | 重试退避                                            |
-| `scanIntervalMs`        | `30000`                         | 周期兜底扫描间隔                                    |
-| `maxClarifyRounds`      | `8`                             | 单需求最大提问轮数                                  |
-| `requireCleanWorktree`  | `true`                          | 执行前要求 git 工作区干净                           |
-| `taskTimeoutMs`         | `1800000`                       | 单任务执行会话超时                                  |
-| `commitMessageTemplate` | `feat({id}): {title}`           | 任务提交信息模板                                    |
-| `enableScheduler`       | `true`                          | 是否启动周期扫描                                    |
+| 配置项                  | 默认值                                 | 说明                                                  |
+| ----------------------- | -------------------------------------- | ----------------------------------------------------- |
+| `workspaceRoot`         | `process.cwd()`                        | **回退**：仅当调用不带会话工作目录时使用              |
+| `stateDir`              | `$DSH_HOME/storages/task-orchestrator` | 插件运行状态目录（绝对路径或 `~` 开头），数据库放这里 |
+| `databaseFile`          | 每工作区一个 `<slug>-<hash12>.sqlite`  | 状态目录内的数据库文件名；显式指定则各工作区共用一个  |
+| `docsRoot`              | `docs`                                 | 目标项目的文档根目录                                  |
+| `systemFeaturesFile`    | `system-features.md`                   | 系统功能全景固定文件名                                |
+| `maxRetries`            | `2`                                    | 单任务自动重试次数                                    |
+| `retryBackoffMs`        | `[30000, 120000]`                      | 重试退避                                              |
+| `scanIntervalMs`        | `30000`                                | 周期兜底扫描间隔                                      |
+| `maxClarifyRounds`      | `8`                                    | 单需求最大提问轮数                                    |
+| `requireCleanWorktree`  | `true`                                 | 执行前要求 git 工作区干净                             |
+| `taskTimeoutMs`         | `1800000`                              | 单任务执行会话超时                                    |
+| `commitMessageTemplate` | `feat({id}): {title}`                  | 任务提交信息模板                                      |
+| `enableScheduler`       | `true`                                 | 是否启动周期扫描                                      |
 
-运行数据（`.dsh/`）、文档产物（`docs/products/`、`docs/tasks/`）都落在**目标项目仓库**中，不在插件包内。
+文档产物（`docs/products/`、`docs/tasks/`）落在**目标项目仓库**中，并随任务提交进入版本历史；运行状态（SQLite 数据库）落在**插件侧的状态目录**（默认 `~/.dsh/storages/task-orchestrator/`，跟着 `$DSH_HOME` 走，不在插件包里）。因此工作区不会多出 `.dsh/` 之类的目录，`git status` 始终干净，也不会因为插件自己的运行文件弄脏工作区而卡在 `requireCleanWorktree` 预检上。
 
 ## 开发
 
 ```sh
 pnpm install
-pnpm --filter @meing/dsh-task-plugin test     # 74 个用例
+pnpm --filter @meing/dsh-task-plugin test     # 80 个用例
 pnpm --filter @meing/dsh-task-plugin build
 pnpm lint && pnpm format:check && pnpm test && pnpm build
 ```
@@ -108,6 +109,8 @@ pnpm lint && pnpm format:check && pnpm test && pnpm build
 
 ## 目标仓库如何确定
 
-任务改造的仓库 = **调用方会话的工作目录**（`session.header.cwd`，即 AI 正在写代码的目录）。同一进程可以同时服务多个仓库：每个仓库各自拥有 `<root>/.dsh/task-orchestrator.sqlite`、`<root>/docs/products|tasks/`、独立的调度器与任务编号空间（`T1` 在两个仓库里互不影响），并按需惰性创建、缓存复用。
+任务改造的仓库 = **调用方会话的工作目录**（`session.header.cwd`，即 AI 正在写代码的目录）。同一进程可以同时服务多个仓库：每个仓库各自拥有 `<root>/docs/products|tasks/`、独立的调度器与任务编号空间（`T1` 在两个仓库里互不影响），并按需惰性创建、缓存复用。
+
+所有仓库共用同一个状态目录，但**每个仓库一个数据库文件**：默认文件名由仓库绝对路径派生（`<目录名>-<路径哈希前 12 位>.sqlite`），因此同名目录、不同路径或同一个仓库的不同 worktree 都不会串库。需要把多个仓库汇总到一个库时，显式配置 `databaseFile` 即可。
 
 会话创建时插件会接管该工作区，因此重启后"再次活跃的工作区"里的中断任务仍会被自动回收。只有不带会话目录的调用（周期扫描、无会话入口）才回退到 `workspaceRoot`。
