@@ -20,13 +20,15 @@
     "README.md",
     "PRD.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "LICENSE",
+    "docs"
   ],
   "scripts": {
     "build": "node scripts/clean.mjs && tsc --noEmit && tsdown",
     "prepack": "pnpm build",
     "test": "vitest run --passWithNoTests",
-    "pack:check": "npm_config_cache=/private/tmp/dsh-task-npm-cache npm pack --dry-run"
+    "pack:check": "npm_config_cache=/private/tmp/dsh-task-npm-cache npm pack --dry-run",
+    "pack": "pnpm build && mkdir -p dist && npm_config_cache=/private/tmp/dsh-task-npm-cache npm pack --pack-destination dist"
   },
   "publishConfig": {
     "access": "public"
@@ -34,27 +36,37 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0",
     "@deepseek-ai/dsh-agent": ">=0.0.1-0",
+    "@deepseek-ai/dsh-agent-default-model": ">=0.0.1-0",
     "@deepseek-ai/dsh-client-connection": ">=0.0.1-0",
     "@deepseek-ai/dsh-client-runtime": ">=0.0.1-0",
     "@deepseek-ai/dsh-client-ui-conversation": ">=0.0.1-0",
+    "@deepseek-ai/dsh-client-ui-layout": ">=0.0.1-0",
     "@deepseek-ai/dsh-client-ui-slots": ">=0.0.1-0",
+    "@deepseek-ai/dsh-commands": ">=0.0.1-0",
     "@deepseek-ai/dsh-llm": ">=0.0.1-0",
+    "@deepseek-ai/dsh-session": ">=0.0.1-0",
     "@deepseek-ai/dsh-system-prompt": ">=0.0.1-0",
     "@deepseek-ai/dsh-tools": ">=0.0.1-0",
     "@deepseek-ai/dsh-user-questions": ">=0.0.1-0",
+    "@deepseek-ai/schemastery": ">=0.0.1-0",
     "react": "^18.2.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "link:../../../test/deepseek-harness/vendor/cordis",
     "@deepseek-ai/dsh-agent": "link:../../../test/deepseek-harness/packages/core/agent",
+    "@deepseek-ai/dsh-agent-default-model": "link:../../../test/deepseek-harness/packages/core/agent-default-model",
     "@deepseek-ai/dsh-client-connection": "link:../../../test/deepseek-harness/packages/client/connection",
     "@deepseek-ai/dsh-client-runtime": "link:../../../test/deepseek-harness/packages/client/runtime",
     "@deepseek-ai/dsh-client-ui-conversation": "link:../../../test/deepseek-harness/packages/client/ui-conversation",
+    "@deepseek-ai/dsh-client-ui-layout": "link:../../../test/deepseek-harness/packages/client/ui-layout",
     "@deepseek-ai/dsh-client-ui-slots": "link:../../../test/deepseek-harness/packages/client/ui-slots",
+    "@deepseek-ai/dsh-commands": "link:../../../test/deepseek-harness/packages/interaction/commands",
     "@deepseek-ai/dsh-llm": "link:../../../test/deepseek-harness/packages/llm/llm",
+    "@deepseek-ai/dsh-session": "link:../../../test/deepseek-harness/packages/core/session",
     "@deepseek-ai/dsh-system-prompt": "link:../../../test/deepseek-harness/packages/core/system-prompt",
     "@deepseek-ai/dsh-tools": "link:../../../test/deepseek-harness/packages/core/tools",
     "@deepseek-ai/dsh-user-questions": "link:../../../test/deepseek-harness/packages/interaction/user-questions",
+    "@deepseek-ai/schemastery": "link:../../../test/deepseek-harness/vendor/schemastery",
     "@types/node": "^24.0.0",
     "@types/react": "~18.3.1",
     "react": "^18.3.1",
@@ -71,6 +83,7 @@
       "inject": [
         "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-layout",
         "@deepseek-ai/dsh-client-ui-slots"
       ]
     }

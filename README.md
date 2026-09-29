@@ -9,7 +9,9 @@ dsh plugin --profile web add @meing/dsh-gomoku-plugin
 dsh plugin --profile web add @meing/dsh-codegraph-plugin
 ```
 
-`@meing/dsh-drawing-plugin` 与 `@meing/dsh-task-plugin` 已建立产品与工程骨架，当前尚未实现或发布。`task` 插件规划需求梳理、任务拆解与后台排期执行能力，定义见 [`task/docs/products/task-orchestrator.md`](./task/docs/products/task-orchestrator.md)。
+`@meing/dsh-drawing-plugin` 已建立产品与工程骨架，当前尚未实现或发布。
+
+`@meing/dsh-task-plugin` 首版已实现（尚未发布）：以产品角色澄清需求并生成产品文档，用户确认后更新系统功能全景并提交，再拆解为带依赖关系的任务，由后台调度器串行执行、每个任务恰好一次独立提交。设计见 [`task/docs/products/task-orchestrator.md`](./task/docs/products/task-orchestrator.md)，当前功能见 [`task/docs/products/system-features.md`](./task/docs/products/system-features.md)。
 
 如需可复现安装，请指定版本：
 
